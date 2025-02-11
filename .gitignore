@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Zone Identifier files
+*.Identifier
+
+# VS Code settings
+.vscode/
