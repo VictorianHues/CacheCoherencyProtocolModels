@@ -3,19 +3,17 @@
 #include <iostream>
 
 #include "memory_module.h"
+#include "cpu_module.h"
 #include "psa.h"
 
 using namespace std;
-
-extern const size_t MEM_SIZE;
-
 
 // Destructor
 Memory::~Memory() {
     delete[] m_data;
 }
 
-void dump() {
+void Memory::dump() {
     for (size_t i = 0; i < MEM_SIZE; i++) {
         cout << setw(5) << i << ": " << setw(5) << m_data[i];
         if (i % 8 == 7) {

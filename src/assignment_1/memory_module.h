@@ -4,7 +4,7 @@
 #include <systemc.h>
 #include <iostream>
 
-static const size_t MEM_SIZE = 2500;
+#include "constants.h"
 
 SC_MODULE(Memory) {
 public:
@@ -28,7 +28,7 @@ public:
 
     ~Memory ();
 
-    dump();
+    void dump();
 
 private:
     uint64_t *m_data;

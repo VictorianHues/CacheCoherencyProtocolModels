@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+*.bin
 
 # Zone Identifier files
 *.Identifier

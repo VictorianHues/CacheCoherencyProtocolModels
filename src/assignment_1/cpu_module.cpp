@@ -10,8 +10,6 @@
 using namespace std;
 using namespace sc_core; // This pollutes namespace, better: only import what you need.
 
-extern const size_t MEM_SIZE;
-
 void CPU::execute() {
     TraceFile::Entry tr_data;
     Memory::Function f;
