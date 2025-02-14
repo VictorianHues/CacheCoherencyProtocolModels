@@ -46,39 +46,39 @@ size_t CacheMemory::find_lru(CacheSet &cache_set) {
 
 void CacheMemory::read_from_main_memory(uint64_t addr, uint64_t &data) {
     Port_MemFunc.write(MainMemory::FUNC_READ_MEM); // Read from Main Memory
-    cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
 
     Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
-    cout << sc_time_stamp() << ": PORT - Main Memory Address Sent" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Address Sent" << endl;
 
-    cout << sc_time_stamp() << ": PORT - Waiting for Main Memory Done Acknowledgement..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Waiting for Main Memory Done Acknowledgement..." << endl;
     wait(Port_MemDone.value_changed_event());
-    cout << sc_time_stamp() << ": PORT - Main Memory Done Acknowledgement Received" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Done Acknowledgement Received" << endl;
 
-    cout << sc_time_stamp() << ": PORT - Reading data from Main Memory..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Reading data from Main Memory..." << endl;
     data = Port_MemData.read().to_uint64();
-    cout << sc_time_stamp() << ": PORT - Data read from Main Memory: " << data << endl;
+    //cout << sc_time_stamp() << ": PORT - Data read from Main Memory: " << data << endl;
 }
 
 void CacheMemory::write_to_main_memory(uint64_t addr, uint64_t &data) {
-    cout << sc_time_stamp() << ": PORT - Write-back to Main Memory..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Write-back to Main Memory..." << endl;
     Port_MemFunc.write(MainMemory::FUNC_WRITE_MEM); // Write to Main Memory
-    cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
 
     Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
-    cout << sc_time_stamp() << ": PORT - Main Memory Address Sent" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Address Sent" << endl;
 
-    cout << sc_time_stamp() << ": PORT - Writing data to Main Memory..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Writing data to Main Memory..." << endl;
     Port_MemData.write(data); // Write data to Main Memory
-    cout << sc_time_stamp() << ": PORT - Data written to Main Memory" << endl;
+    //cout << sc_time_stamp() << ": PORT - Data written to Main Memory" << endl;
 
-    cout << sc_time_stamp() << ": PORT - Floating data wires..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Floating data wires..." << endl;
     Port_MemData.write(float_64_bit_wire); // Float data wires
-    cout << sc_time_stamp() << ": PORT - Data wires floated" << endl;
+    //cout << sc_time_stamp() << ": PORT - Data wires floated" << endl;
 
-    cout << sc_time_stamp() << ": PORT - Waiting for Main Memory Done Acknowledgement..." << endl;
+    //cout << sc_time_stamp() << ": PORT - Waiting for Main Memory Done Acknowledgement..." << endl;
     wait(Port_MemDone.value_changed_event());
-    cout << sc_time_stamp() << ": PORT - Main Memory Done Acknowledgement Received" << endl;
+    //cout << sc_time_stamp() << ": PORT - Main Memory Done Acknowledgement Received" << endl;
 }
 
 // Thread execution function
@@ -174,14 +174,14 @@ void CacheMemory::execute() {
                 cache[set_addr].lines[cache_hit_index].dirty = false; // Set dirty bit
                 cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
             }
-            cout << sc_time_stamp() << ": PORT - Data being sent to CPU ..." << endl;
+            //cout << sc_time_stamp() << ": PORT - Data being sent to CPU ..." << endl;
             Port_Data.write(data); // Returns requested data to CPU
-            cout << sc_time_stamp() << ": PORT - Data sent to CPU" << endl;
+            //cout << sc_time_stamp() << ": PORT - Data sent to CPU" << endl;
 
-            cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Sent..." << endl;
+            //cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Sent..." << endl;
             Port_Done.write(RET_READ_DONE); // Returns read done to CPU
             wait(SC_ZERO_TIME);
-            cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Complete" << endl;
+            //cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Complete" << endl;
             Port_Done.write(RetCode());
             
 
@@ -220,10 +220,10 @@ void CacheMemory::execute() {
             
             cout << sc_time_stamp() << ": CACHE writes data to CACHE Line: " << data << endl;
 
-            cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Sent..." << endl;
+            //cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Sent..." << endl;
             Port_Done.write(RET_WRITE_DONE); // Returns read done to CPU
             wait(SC_ZERO_TIME);
-            cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Complete" << endl;
+            //cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Complete" << endl;
             Port_Done.write(RetCode());
         }
 
