@@ -41,6 +41,8 @@ SC_MODULE(CacheMemory) {
         
         void update_lru(CacheSet &set, size_t index);
         size_t find_lru(CacheSet &set);
+        void read_from_main_memory(uint64_t addr, uint64_t &data);
+        void write_to_main_memory(uint64_t addr, uint64_t &data);
         void execute ();
 };
 

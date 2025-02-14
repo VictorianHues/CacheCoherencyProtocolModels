@@ -67,11 +67,11 @@ void CPU::execute() {
                 
                 // Now float the data wires with 64 "Z"'s
                 Port_CpuData.write(float_64_bit_wire);
-                cout << sc_time_stamp() << ": CPU wrote float_64_bit_wire to Port_CpuData." << endl;
 
             } else {
                 cout << sc_time_stamp() << ": CPU sends read" << endl;
             }
+            
             cout << sc_time_stamp() << ": CPU waits for memory response" << endl;
             wait(Port_CpuDone.value_changed_event());
             cout << sc_time_stamp() << ": CPU resumed execution after wait()." << endl;
