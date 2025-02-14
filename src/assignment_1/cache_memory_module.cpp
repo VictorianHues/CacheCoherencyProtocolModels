@@ -48,9 +48,9 @@ size_t CacheMemory::find_lru(CacheSet &cache_set) {
 // Thread execution function
 void CacheMemory::execute() {
     while (true) {
-        cout << sc_time_stamp() << ": WAITING FOR NEXT MEMORY REQUEST..." << endl;
+        cout << sc_time_stamp() << ": CACHE WAITING FOR NEXT MEMORY REQUEST..." << endl;
         wait(Port_Func.value_changed_event());
-        cout << sc_time_stamp() << ": Received memory request!" << endl;
+        cout << sc_time_stamp() << ": Cache Received memory request!" << endl;
 
 
         uint64_t addr = Port_Addr.read(); // Read the address
@@ -82,6 +82,7 @@ void CacheMemory::execute() {
 
         uint64_t data = 0;
 
+
         /* Cache Hit */
         if (cache_hit) {
             data = cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
@@ -89,19 +90,29 @@ void CacheMemory::execute() {
             
             /* Memory Access */
             if (f == FUNC_READ) {
-                cout << sc_time_stamp() << ": MEM received read at address " << addr << endl;
+                cout << sc_time_stamp() << ": Cache received read at address " << addr << endl;
+
+                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Read
 
                 /* If Cache Line is Invalid, retrieve data from Main Memory*/
                 if (!cache_line_valid) {
-                    cout << sc_time_stamp() << ":  Data not valid for read, fetching from main memory" << endl;
+                    cout << sc_time_stamp() << ": Cache Data not valid for read, fetching from main memory" << endl;
 
-                    data = 101010101; // Initialize data to 0 to simulate memory read
-                    // Read from main memory
+                    Port_MemFunc.write(MainMemory::FUNC_READ_MEM); // Read from Main Memory
+                    cout << sc_time_stamp() << ": Main Memory Function Sent" << endl;
 
-                    // Return read done to Main memory                  
+                    Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
+                    cout << sc_time_stamp() << ": Main Memory Address Sent" << endl;
 
-                    cout << sc_time_stamp() << ": Data for read from main memory: " << data << endl;
+                    cout << sc_time_stamp() << ": Waiting for Main Memory Done Acknowledgement..." << endl;
+                    wait(Port_MemDone.value_changed_event());
+                    cout << sc_time_stamp() << ": Main Memory Done Acknowledgement Received" << endl;
 
+                    cout << sc_time_stamp() << ": Reading data from Main Memory..." << endl;
+                    data = Port_MemData.read().to_uint64();
+                    cout << sc_time_stamp() << ": Data read from Main Memory: " << data << endl;                
+
+                    wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
                     cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data;
                     cache[set_addr].lines[cache_hit_index].valid = true;
                     cache[set_addr].lines[cache_hit_index].dirty = false;
@@ -118,10 +129,10 @@ void CacheMemory::execute() {
                 Port_Done.write(RetCode());
             }
             else if (f == FUNC_WRITE) {
-                cout << sc_time_stamp() << ": MEM received write at address " << addr << endl;
+                cout << sc_time_stamp() << ": Cache received write at address " << addr << endl;
 
                 data = Port_Data.read().to_uint64();
-                wait(MEM_LATENCY);
+                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
                 
                 /* If the tags match to get a cache hit, then simply replace the data in the cache line */
                 cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Write data to cache
@@ -145,13 +156,23 @@ void CacheMemory::execute() {
 
             if (f == FUNC_READ) {
                 /* Data not in cache, so read from Main Memory */
-                cout << sc_time_stamp() << ": Reading from Main Memory " << endl;
+                cout << sc_time_stamp() << ": Cache Fetching from main memory" << endl;
 
-                data = 101010101; // Initialize placeholder data to simulate memory read
-                // Read from main memory
+                Port_MemFunc.write(MainMemory::FUNC_READ_MEM); // Read from Main Memory
+                cout << sc_time_stamp() << ": Main Memory Function Sent" << endl;
 
-                // Return read done to Main memory
-                cout << sc_time_stamp() << ": Data for read from main memory: " << data << endl;
+                Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
+                cout << sc_time_stamp() << ": Main Memory Address Sent" << endl;
+
+                cout << sc_time_stamp() << ": Waiting for Main Memory Done Acknowledgement..." << endl;
+                wait(Port_MemDone.value_changed_event());
+                cout << sc_time_stamp() << ": Main Memory Done Acknowledgement Received" << endl;
+
+                cout << sc_time_stamp() << ": Reading data from Main Memory..." << endl;
+                data = Port_MemData.read().to_uint64();
+                cout << sc_time_stamp() << ": Data read from Main Memory: " << data << endl;                
+
+                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency to read Dirty Bit
 
                 /* If evicted line is dirty, write to Main Memory*/
                 if (cache[set_addr].lines[cache_hit_index].dirty) {
@@ -160,12 +181,28 @@ void CacheMemory::execute() {
                     uint64_t evicted_data = cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
                     cout << sc_time_stamp() << ": Evicted data: " << evicted_data << endl;
-                    // Write Evicted Data to Main Memory
 
-                    // Return write done to Main memory
+                    cout << sc_time_stamp() << ": Write-back to Main Memory..." << endl;
+                    Port_MemFunc.write(MainMemory::FUNC_WRITE_MEM); // Write to Main Memory
+                    cout << sc_time_stamp() << ": Main Memory Function Sent" << endl;
 
-                    wait(MEM_LATENCY);
+                    Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
+                    cout << sc_time_stamp() << ": Main Memory Address Sent" << endl;
+
+                    cout << sc_time_stamp() << ": Writing data to Main Memory..." << endl;
+                    Port_MemData.write(evicted_data); // Write data to Main Memory
+                    cout << sc_time_stamp() << ": Data written to Main Memory" << endl;
+
+                    cout << sc_time_stamp() << ": Floating data wires..." << endl;
+                    Port_MemData.write(float_64_bit_wire); // Float data wires
+                    cout << sc_time_stamp() << ": Data wires floated" << endl;
+
+                    cout << sc_time_stamp() << ": Waiting for Main Memory Done Acknowledgement..." << endl;
+                    wait(Port_MemDone.value_changed_event());
+                    cout << sc_time_stamp() << ": Main Memory Done Acknowledgement Received" << endl;
                 } /* If not dirty, replace evicted without consequence */
+                
+                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
 
                 cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
                 cache[set_addr].lines[cache_hit_index].dirty = false; // Set dirty bit
@@ -182,10 +219,9 @@ void CacheMemory::execute() {
                 Port_Done.write(RetCode());
             }
             else if (f == FUNC_WRITE) {
-                cout << sc_time_stamp() << ": MEM received write at address " << addr << endl;
+                cout << sc_time_stamp() << ": Cache received write at address " << addr << endl;
 
                 data = Port_Data.read().to_uint64();
-                wait(MEM_LATENCY);
 
                 /* If evicted line is dirty, write to Main Memory*/
                 if (cache[set_addr].lines[cache_hit_index].dirty) {
@@ -194,13 +230,29 @@ void CacheMemory::execute() {
                     uint64_t evicted_data = cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
                     cout << sc_time_stamp() << ": Evicted data: " << evicted_data << endl;
-                    // Write Evicted Data to Main Memory
 
-                    // Return write done to Main memory
+                    cout << sc_time_stamp() << ": Write-back to Main Memory..." << endl;
+                    Port_MemFunc.write(MainMemory::FUNC_WRITE_MEM); // Write to Main Memory
+                    cout << sc_time_stamp() << ": Main Memory Function Sent" << endl;
 
-                     wait(MEM_LATENCY);
+                    Port_MemAddr.write(addr); // Send address to Main Memory. Using CPU address in as placeholder
+                    cout << sc_time_stamp() << ": Main Memory Address Sent" << endl;
+
+                    cout << sc_time_stamp() << ": Writing data to Main Memory..." << endl;
+                    Port_MemData.write(evicted_data); // Write data to Main Memory
+                    cout << sc_time_stamp() << ": Data written to Main Memory" << endl;
+
+                    cout << sc_time_stamp() << ": Floating data wires..." << endl;
+                    Port_MemData.write(float_64_bit_wire); // Float data wires
+                    cout << sc_time_stamp() << ": Data wires floated" << endl;
+
+                    cout << sc_time_stamp() << ": Waiting for Main Memory Done Acknowledgement..." << endl;
+                    wait(Port_MemDone.value_changed_event());
+                    cout << sc_time_stamp() << ": Main Memory Done Acknowledgement Received" << endl;
                 } /* If not dirty, replace evicted without consequence */
                 
+                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
+
                 cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
                 cache[set_addr].lines[cache_hit_index].dirty = true; // Set dirty bit
                 cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data

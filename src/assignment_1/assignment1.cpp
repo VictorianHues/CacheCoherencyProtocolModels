@@ -18,6 +18,7 @@
 
 #include "cache_memory_module.h"
 #include "cpu_module.h"
+# include "main_memory_module.h"
 #include "psa.h"
 
 using namespace std;
@@ -34,14 +35,19 @@ int sc_main(int argc, char *argv[]) {
         stats_init();
 
         // Instantiate Modules
+        MainMemory mem("main_memory");
         CacheMemory cache("cache_memory");
         CPU cpu("cpu");
 
         // CPU-Cache Signals
+        sc_buffer<MainMemory::FunctionMem> sigFuncMem;
+        sc_buffer<MainMemory::RetCodeMem> sigDoneMem;
+
         sc_buffer<CacheMemory::Function> sigFuncCache;
         sc_buffer<CacheMemory::RetCode> sigDoneCache;
-        sc_signal<uint64_t> sigAddr;
-        sc_signal_rv<64> sigData;
+
+        sc_signal<uint64_t> sigAddr, sigAddrMem;
+        sc_signal_rv<64> sigData, sigDataMem;
 
         // The clock that will drive the CPU and Memory
         sc_clock clk;
@@ -52,6 +58,16 @@ int sc_main(int argc, char *argv[]) {
         cache.Port_Data(sigData);
         cache.Port_Done(sigDoneCache);
 
+        cache.Port_MemFunc(sigFuncMem);
+        cache.Port_MemAddr(sigAddrMem);
+        cache.Port_MemData(sigDataMem);
+        cache.Port_MemDone(sigDoneMem);
+
+        mem.Port_MemFunc(sigFuncMem);
+        mem.Port_MemAddr(sigAddrMem);
+        mem.Port_MemData(sigDataMem);
+        mem.Port_MemDone(sigDoneMem);
+
         cpu.Port_CpuFunc(sigFuncCache);
         cpu.Port_CpuAddr(sigAddr);
         cpu.Port_CpuData(sigData);
@@ -59,6 +75,7 @@ int sc_main(int argc, char *argv[]) {
 
         cache.Port_CLK(clk);
         cpu.Port_CLK(clk);
+        mem.Port_CLK(clk);
 
 
         cout << "Running (press CTRL+C to interrupt)... " << endl;
