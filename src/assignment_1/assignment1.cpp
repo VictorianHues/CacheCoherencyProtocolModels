@@ -16,7 +16,7 @@
 #include <exception>
 #define SC_ALLOW_DEPRECATED_IEEE_API
 
-#include "memory_module.h"
+#include "cache_memory_module.h"
 #include "cpu_module.h"
 #include "psa.h"
 
@@ -34,31 +34,32 @@ int sc_main(int argc, char *argv[]) {
         stats_init();
 
         // Instantiate Modules
-        Memory mem("main_memory");
+        CacheMemory cache("cache_memory");
         CPU cpu("cpu");
 
-        // Signals
-        sc_buffer<Memory::Function> sigMemFunc;
-        sc_buffer<Memory::RetCode> sigMemDone;
-        sc_signal<uint64_t> sigMemAddr;
-        sc_signal_rv<64> sigMemData;
+        // CPU-Cache Signals
+        sc_buffer<CacheMemory::Function> sigFuncCache;
+        sc_buffer<CacheMemory::RetCode> sigDoneCache;
+        sc_signal<uint64_t> sigAddr;
+        sc_signal_rv<64> sigData;
 
         // The clock that will drive the CPU and Memory
         sc_clock clk;
 
         // Connecting module ports with signals
-        mem.Port_Func(sigMemFunc);
-        mem.Port_Addr(sigMemAddr);
-        mem.Port_Data(sigMemData);
-        mem.Port_Done(sigMemDone);
+        cache.Port_Func(sigFuncCache);
+        cache.Port_Addr(sigAddr);
+        cache.Port_Data(sigData);
+        cache.Port_Done(sigDoneCache);
 
-        cpu.Port_MemFunc(sigMemFunc);
-        cpu.Port_MemAddr(sigMemAddr);
-        cpu.Port_MemData(sigMemData);
-        cpu.Port_MemDone(sigMemDone);
+        cpu.Port_CpuFunc(sigFuncCache);
+        cpu.Port_CpuAddr(sigAddr);
+        cpu.Port_CpuData(sigData);
+        cpu.Port_CpuDone(sigDoneCache);
 
-        mem.Port_CLK(clk);
+        cache.Port_CLK(clk);
         cpu.Port_CLK(clk);
+
 
         cout << "Running (press CTRL+C to interrupt)... " << endl;
 
