@@ -45,6 +45,8 @@ size_t CacheMemory::find_lru(CacheSet &cache_set) {
 }
 
 void CacheMemory::read_from_main_memory(uint64_t addr, uint64_t &data) {
+    wait(MEM_LATENCY);
+
     Port_MemFunc.write(MainMemory::FUNC_READ_MEM); // Read from Main Memory
     //cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
 
@@ -61,6 +63,8 @@ void CacheMemory::read_from_main_memory(uint64_t addr, uint64_t &data) {
 }
 
 void CacheMemory::write_to_main_memory(uint64_t addr, uint64_t &data) {
+    wait(MEM_LATENCY);
+
     //cout << sc_time_stamp() << ": PORT - Write-back to Main Memory..." << endl;
     Port_MemFunc.write(MainMemory::FUNC_WRITE_MEM); // Write to Main Memory
     //cout << sc_time_stamp() << ": PORT - Main Memory Function Sent" << endl;
@@ -102,13 +106,12 @@ void CacheMemory::execute() {
         size_t cache_hit_index = -1;
 
         cout << sc_time_stamp() << ": CACHE Memory received " << (f == FUNC_READ ? "read" : "write") << " request for address " << addr << endl;
-        cout << sc_time_stamp() << ": CACHE Line | Tag: " << tag << " Set Address: " << set_addr << " Byte in Line: " << byte_in_line << endl;
+        cout << sc_time_stamp() << ": CACHE Line, Tag: " << tag << " Set Address: " << set_addr << " Byte in Line: " << byte_in_line << endl;
         cout << sc_time_stamp() << ": CACHE Initial LRU Queue: " << cache[set_addr].lru[0] << " " << cache[set_addr].lru[1] << " " << cache[set_addr].lru[2] << " " << cache[set_addr].lru[3] << " " << cache[set_addr].lru[4] << " " << cache[set_addr].lru[5] << " " << cache[set_addr].lru[6] << " " << cache[set_addr].lru[7] << endl;
 
         /* Check if the address is in the cache for Cache Hit */
         for (size_t i = 0 ; i < SET_ASSOCIATIVITY ; i++) { // Iterate over lines in set
-            if (cache[set_addr].lines[i].tag == tag // If the tag matches the set's tag
-                && cache[set_addr].lines[i].valid) {  // If the line is valid 
+            if (cache[set_addr].lines[i].tag == tag) {
                 cache_hit = true; // Cache hit
                 cache_hit_index = i; // Cache hit index
 
@@ -127,7 +130,7 @@ void CacheMemory::execute() {
 
             bool cache_line_valid = cache[set_addr].lines[cache_hit_index].valid;
             data = cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-            wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Line Read
+            wait(SC_ZERO_TIME); // Single-cycle Cache Latency for Cache Line Read
 
             if (cache_hit) {
                 if (!cache_line_valid) {
@@ -135,13 +138,15 @@ void CacheMemory::execute() {
 
                     read_from_main_memory(addr, data);              
 
-                    wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
+                    wait(SC_ZERO_TIME); // Single-cycle Cache Latency for Cache Write
+                    cache[set_addr].lines[cache_hit_index].tag = tag; // Set tag
                     cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
                     cache[set_addr].lines[cache_hit_index].dirty = false; // Set dirty bit
                     cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
                 } else {
                     cout << sc_time_stamp() << ": CACHE Data VALID for read, fetching from cache" << endl;
                 }
+                stats_readhit(0);
 
             } else {
                 cout << sc_time_stamp() << ": CACHE Fetching from main memory" << endl;
@@ -168,20 +173,25 @@ void CacheMemory::execute() {
                     cout << sc_time_stamp() << ": CACHE Write-back evicted Complete" << endl;
 
                 } /* If not dirty, replace evicted without consequence */
-                
-                wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
+
+                wait(SC_ZERO_TIME);
+                cache[set_addr].lines[cache_hit_index].tag = tag; // Set tag
                 cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
                 cache[set_addr].lines[cache_hit_index].dirty = false; // Set dirty bit
                 cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
+            
+                stats_readmiss(0);
             }
+
             //cout << sc_time_stamp() << ": PORT - Data being sent to CPU ..." << endl;
             Port_Data.write(data); // Returns requested data to CPU
             //cout << sc_time_stamp() << ": PORT - Data sent to CPU" << endl;
 
             //cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Sent..." << endl;
             Port_Done.write(RET_READ_DONE); // Returns read done to CPU
-            wait(SC_ZERO_TIME);
+            wait(CACHE_CYCLE_LATENCY);
             //cout << sc_time_stamp() << ": PORT - Read Done Acknowledgement Complete" << endl;
+            Port_Data.write(float_64_bit_wire);
             Port_Done.write(RetCode());
             
 
@@ -193,6 +203,8 @@ void CacheMemory::execute() {
             cout << sc_time_stamp() << ": CACHE receives data from CPU: " << data << endl;
 
             if (!cache_hit) {
+                read_from_main_memory(addr, data); // Simulate reading a Cache Line from Main Memory
+
                 cout << sc_time_stamp() << ": CACHE searching for Least Recently Used line" << endl;
 
                 cache_hit_index = find_lru(cache[set_addr]);
@@ -211,9 +223,14 @@ void CacheMemory::execute() {
 
                     cout << sc_time_stamp() << ": CACHE Write-back evicted Complete" << endl;
                 } /* If not dirty, replace evicted without consequence */
+            
+                stats_writemiss(0);
+            } else {
+                stats_writehit(0);
             }
 
-            wait(CACHE_CYCLE_LATENCY); // Single-cycle Cache Latency for Cache Write
+            wait(SC_ZERO_TIME); // Single-cycle Cache Latency for Cache Write
+            cache[set_addr].lines[cache_hit_index].tag = tag; // Set tag
             cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
             cache[set_addr].lines[cache_hit_index].dirty = true; // Set dirty bit
             cache[set_addr].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
@@ -222,7 +239,7 @@ void CacheMemory::execute() {
 
             //cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Sent..." << endl;
             Port_Done.write(RET_WRITE_DONE); // Returns read done to CPU
-            wait(SC_ZERO_TIME);
+            wait(CACHE_CYCLE_LATENCY);
             //cout << sc_time_stamp() << ": PORT - Write Done Acknowledgement Complete" << endl;
             Port_Done.write(RetCode());
         }

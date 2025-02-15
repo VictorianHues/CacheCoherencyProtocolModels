@@ -6,6 +6,7 @@
 #include "cpu_module.h"
 #include "cache_memory_module.h"
 #include "psa.h"
+#include "constants.h"
 
 using namespace std;
 using namespace sc_core; // This pollutes namespace, better: only import what you need.
@@ -23,26 +24,13 @@ void CPU::execute() {
             break;
         }
 
-        // To demonstrate the statistic functions, we generate a 50%
-        // probability of a 'hit' or 'miss', and call the statistic
-        // functions below
-        int j = rand() % 2;
-
         switch (tr_data.type) {
         case TraceFile::ENTRY_TYPE_READ:
             f = CacheMemory::FUNC_READ;
-            if (j)
-                stats_readhit(0);
-            else
-                stats_readmiss(0);
             break;
 
         case TraceFile::ENTRY_TYPE_WRITE:
             f = CacheMemory::FUNC_WRITE;
-            if (j)
-                stats_writehit(0);
-            else
-                stats_writemiss(0);
             break;
 
         case TraceFile::ENTRY_TYPE_NOP: break;
@@ -62,7 +50,7 @@ void CPU::execute() {
                 // Don't have data, we write the address as the data value.
                 cout << sc_time_stamp() << ": CPU writes address as placeholder: " << tr_data.addr << endl;
                 Port_CpuData.write(tr_data.addr);
-                wait();
+                wait(CACHE_CYCLE_LATENCY);
                 cout << sc_time_stamp() << ": CPU resumed execution after wait(). Now floating data wires." << endl;
                 
                 // Now float the data wires with 64 "Z"'s
@@ -75,6 +63,8 @@ void CPU::execute() {
             cout << sc_time_stamp() << ": CPU waits for memory response" << endl;
             wait(Port_CpuDone.value_changed_event());
             cout << sc_time_stamp() << ": CPU resumed execution after wait()." << endl;
+            
+            wait(CACHE_CYCLE_LATENCY);
 
             if (f == CacheMemory::FUNC_READ) {
                 cout << sc_time_stamp()
