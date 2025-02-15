@@ -3,9 +3,6 @@
 
 #include <iostream>
 
-/* Main Memory Module */
-static const size_t MEM_SIZE = 1024 * 1024; // 1MB to Bytes
-
 /* Cache Memory Module */
 static const size_t CACHE_SIZE = 32 * 1024; // 32KB to Bytes
 static const size_t SET_ASSOCIATIVITY = 8; // 8 way set assoc

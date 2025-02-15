@@ -4,7 +4,7 @@
 #include "constants.h"
 
 struct CacheLine {
-    uint64_t tag = 0;
+    uint64_t tag = -1;
     bool valid = false;
     bool dirty = false;
     uint64_t data[LINE_SIZE / sizeof(uint64_t)] = {0};
