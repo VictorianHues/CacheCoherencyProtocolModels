@@ -6,6 +6,7 @@
 
 #include "bus_slave_if.h"
 #include "helpers.h"
+#include "constants.h"
 
 class Memory : public bus_slave_if, public sc_module {
     public:
@@ -20,14 +21,14 @@ class Memory : public bus_slave_if, public sc_module {
     int read(uint64_t addr) {
         assert((addr & 0x3) == 0);
         log(name(), "read from address", addr);
-        wait(100);
+        wait(MEM_LATENCY);
         return 0;
     }
 
     int write(uint64_t addr) {
         assert((addr & 0x3) == 0);
         log(name(), "write to address", addr);
-        wait(100);
+        wait(MEM_LATENCY);
         return 0;
     }
 };
