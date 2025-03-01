@@ -73,8 +73,6 @@ int Cache::cpu_read(uint64_t addr) {
     bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
     uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
-    wait(SC_ZERO_TIME);
-
     cout << sc_time_stamp() << ": Initial LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
 
@@ -86,7 +84,11 @@ int Cache::cpu_read(uint64_t addr) {
                so that there is no need to evict the lru line */
             log(name(), "line INVALID for read, fetching from main memory");
 
-            memory->read(addr);    
+            bus->read(addr, this);
+            while (!response_event.triggered()) {  // Wait but keep in sync with clock
+                wait(clk.posedge_event());
+                log(name(), "waiting for response");
+            }
 
             set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
@@ -103,7 +105,12 @@ int Cache::cpu_read(uint64_t addr) {
         log(name(), "read miss on address", addr);
         log(name(), "fetching from main memory");
 
-        memory->read(addr);
+        bus->read(addr, this);
+        
+        while (!response_event.triggered()) { 
+            wait(clk.posedge_event());
+            //log(name(), "waiting for response");
+        }
 
         log(name(), "searching for Least Recently Used line");
 
@@ -119,7 +126,11 @@ int Cache::cpu_read(uint64_t addr) {
 
             log(name(), "evicted data", evicted_data);
 
-            memory->write(128);
+            bus->write(128, this);
+            while (!response_event.triggered()) {  // Wait but keep in sync with clock
+                wait(clk.posedge_event());
+                //log(name(), "waiting for response");
+            }
         } /* If not dirty, replace evicted without consequence */
 
         set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
@@ -175,7 +186,12 @@ int Cache::cpu_write(uint64_t addr) {
 
         log(name(), "write miss on address", addr);
 
-        memory->read(addr); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
+        bus->read(addr, this); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
+        
+        while (!response_event.triggered()) {  // Wait but keep in sync with clock
+            wait(clk.posedge_event());
+            //log(name(), "waiting for response");
+        }
 
         cache_hit_index = find_lru(cache[set_index]);
 
@@ -189,7 +205,11 @@ int Cache::cpu_write(uint64_t addr) {
 
             log(name(), "evicted data", evicted_data);
 
-            memory->write(128);
+            bus->write(128, this);
+            while (!response_event.triggered()) {  // Wait but keep in sync with clock
+                wait(clk.posedge_event());
+                //log(name(), "waiting for response");
+            }
 
         } /* If not dirty, replace evicted without consequence */
 
@@ -208,4 +228,3 @@ int Cache::cpu_write(uint64_t addr) {
 
     return 0;
 }
-

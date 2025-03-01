@@ -8,6 +8,7 @@
 
 #include "CPU.h"
 #include "Cache.h"
+#include "Bus.h"
 #include "psa.h"
 
 using namespace std;
@@ -34,15 +35,20 @@ int sc_main(int argc, char *argv[]) {
         CPU *cpu = new CPU(sc_gen_unique_name("cpu"), 0);
         Cache *cache = new Cache(sc_gen_unique_name("cache"), 0);
         Memory *memory = new Memory("memory");
+        Bus *bus = new Bus("bus");
 
         // The clock that will drive the CPU
         sc_clock clk;
 
         // Connect instances
         cpu->cache(*cache);
-        cache->memory(*memory);
+        //cache->memory(*memory);
+        cache->bus(*bus);
+        bus->memory(*memory);
 
         cpu->clock(clk);
+        cache->clk(clk);
+        bus->clk(clk);
 
         // Start Simulation
         sc_start();
@@ -55,6 +61,7 @@ int sc_main(int argc, char *argv[]) {
         delete cpu;
         delete cache;
         delete memory;
+        delete bus;
     } catch (exception &e) {
         cerr << e.what() << endl;
     }
