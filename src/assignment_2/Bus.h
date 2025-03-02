@@ -30,11 +30,11 @@ class Bus : public bus_slave_if, public sc_module {
         SC_CTOR(Bus) {
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
-            dont_initialize();
+            //dont_initialize();
 
             SC_THREAD(processResponsesQueue);
             sensitive << clk.pos();
-            dont_initialize();
+            //dont_initialize();
         }
     
         int read(uint64_t addr, Cache* requester) {
@@ -77,7 +77,7 @@ class Bus : public bus_slave_if, public sc_module {
                     if (req.request_type == 0) { // Search for data in caches
                         log(name(), "READ SNOOP for data from CACHE", req.source_cache->id);
                         for (auto& cache : cache_list) {
-                            if (cache) {
+                            if (cache && cache != req.source_cache) {
                                 req.snoop_success = cache->snoop(req.addr, false);
                             }
                         }
@@ -93,7 +93,7 @@ class Bus : public bus_slave_if, public sc_module {
                     } else if (req.request_type == 2) { // Write in local Cache invalidates all other caches
                         log(name(), "WRITE INVALIDATE from CACHE", req.source_cache->id);
                         for (auto& cache : cache_list) {
-                            if (cache) {
+                            if (cache && cache != req.source_cache) {
                                 req.snoop_success = cache->snoop(req.addr, true);
                             }
                         }

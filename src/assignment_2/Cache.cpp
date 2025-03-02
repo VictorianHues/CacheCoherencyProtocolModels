@@ -46,6 +46,7 @@ void Cache::decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_
 void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, 
                             uint64_t data, uint64_t byte_in_line, bool valid, bool dirty) {
     log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
+    log(name(), "tag", tag, "data", data, "byte", byte_in_line, "valid", valid, "dirty", dirty);
 
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
     cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
@@ -79,9 +80,10 @@ void Cache::wait_for_bus_response() {
         wait(clk.posedge_event());
         //log(name(), "waiting for response...");
     }
+    wait(clk.posedge_event());
 }
 
-void Cache::read_hit(int set_index, size_t cache_hit_index, 
+void Cache::read_hit(int set_index, size_t &cache_hit_index, 
     uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
     log(name(), "READ HIT on address", addr);
     if (!cache[set_index].lines[cache_hit_index].valid) {
@@ -95,15 +97,15 @@ void Cache::read_hit(int set_index, size_t cache_hit_index,
 
         set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
-        //stats_readmiss(id);
+        stats_readmiss(id);
     } else {
         log(name(), "line VALID for read, fetching from CACHE");
-        //stats_readhit(id);
+        stats_readhit(id);
     }
-    stats_readhit(id);
+    //stats_readhit(id);
 }
 
-void Cache::read_miss(int set_index, size_t cache_hit_index, 
+void Cache::read_miss(int set_index, size_t &cache_hit_index, 
     uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
     /* No matching tag in Cache Set (Cache Miss), so the data must 
         be read from Bus and stored in the Least-recently 
@@ -125,7 +127,7 @@ void Cache::read_miss(int set_index, size_t cache_hit_index,
     stats_readmiss(id);
 }
 
-void Cache::write_hit(int set_index, size_t cache_hit_index, 
+void Cache::write_hit(int set_index, size_t &cache_hit_index, 
     uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
     /* If a Cache Hit occurs, simply write the data from the
     CPU to the Cache Line */
@@ -139,7 +141,7 @@ void Cache::write_hit(int set_index, size_t cache_hit_index,
     stats_writehit(id);
 }
 
-void Cache::write_miss(int set_index, size_t cache_hit_index, 
+void Cache::write_miss(int set_index, size_t &cache_hit_index, 
     uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
     /* If the Tags don't match (Catch Miss), find the Least Recently
     used Cache Line and replace it with the data from CPU, evicting
@@ -180,6 +182,8 @@ int Cache::cpu_read(uint64_t addr) {
 
     uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
+    log(name(), "CPU READ on tag", tag, "set", set_index, "byte", byte_in_line);
+
     cout << sc_time_stamp() << ": INITIAL LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
 
@@ -210,9 +214,9 @@ int Cache::cpu_write(uint64_t addr) {
 
     uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
     
-    wait(SC_ZERO_TIME);
+    log(name(), "CPU WRITE on tag", tag, "set", set_index, "byte", byte_in_line);
 
-    cout << sc_time_stamp() << ": INITIAL LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
+    cout << sc_time_stamp() << ": INITIAL LRU Queue: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
     if (cache_hit) {
         write_hit(set_index, cache_hit_index, tag, data, byte_in_line, addr);
@@ -222,7 +226,7 @@ int Cache::cpu_write(uint64_t addr) {
 
     update_lru(cache[set_index], cache_hit_index);
 
-    cout << sc_time_stamp() << ": UPDATED LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
+    cout << sc_time_stamp() << ": UPDATED LRU Queue: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
     return 0;
 }

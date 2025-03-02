@@ -21,13 +21,13 @@ class Cache : public cpu_cache_if, public sc_module {
         sc_event response_event;
 
         // cpu_cache interface methods.
-        void read_hit(int set_index, size_t cache_hit_index, 
+        void read_hit(int set_index, size_t &cache_hit_index, 
             uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
-        void read_miss(int set_index, size_t cache_hit_index, 
+        void read_miss(int set_index, size_t &cache_hit_index, 
             uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
-        void write_hit(int set_index, size_t cache_hit_index, 
+        void write_hit(int set_index, size_t &cache_hit_index, 
             uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
-        void write_miss(int set_index, size_t cache_hit_index, 
+        void write_miss(int set_index, size_t &cache_hit_index, 
             uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
 
         int cpu_read(uint64_t addr);
@@ -42,7 +42,9 @@ class Cache : public cpu_cache_if, public sc_module {
         }
 
         void notify_response() { 
+            log(name(), "received response from BUS");
             response_event.notify(); // Called by Bus when request completes
+            log(name(), "notified response event");
         }
 
         bool snoop(uint64_t addr, bool is_write);
