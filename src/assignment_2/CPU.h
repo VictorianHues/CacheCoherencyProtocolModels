@@ -39,18 +39,18 @@ class CPU : public sc_module {
             case TraceFile::ENTRY_TYPE_READ:
                 log(name(), "reading from address", tr_data.addr);
                 cache->cpu_read(tr_data.addr);
-                log(name(), "read done");
+                log(name(), "READ DONE");
                 break;
             case TraceFile::ENTRY_TYPE_WRITE:
                 log(name(), "writing to address", tr_data.addr);
                 cache->cpu_write(tr_data.addr);
-                log(name(), "write done");
+                log(name(), "WRITE DONE");
                 break;
             case TraceFile::ENTRY_TYPE_NOP:
-                log(name(), "nop");
+                log(name(), "NOP");
                 break;
             default:
-                cerr << "Error, got invalid data from Trace" << endl;
+                cerr << "ERROR, got invalid data from Trace" << endl;
                 exit(0);
             }
             wait();

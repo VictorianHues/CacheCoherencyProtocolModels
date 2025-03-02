@@ -12,6 +12,8 @@
 
 class Cache : public cpu_cache_if, public sc_module {
     public:
+        int id;
+
         sc_in<bool> clk;
         //sc_port<bus_slave_if> memory;
         sc_port<bus_slave_if> bus;
@@ -19,6 +21,15 @@ class Cache : public cpu_cache_if, public sc_module {
         sc_event response_event;
 
         // cpu_cache interface methods.
+        void read_hit(int set_index, size_t cache_hit_index, 
+            uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
+        void read_miss(int set_index, size_t cache_hit_index, 
+            uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
+        void write_hit(int set_index, size_t cache_hit_index, 
+            uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
+        void write_miss(int set_index, size_t cache_hit_index, 
+            uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr);
+
         int cpu_read(uint64_t addr);
         int cpu_write(uint64_t addr);
 
@@ -34,9 +45,9 @@ class Cache : public cpu_cache_if, public sc_module {
             response_event.notify(); // Called by Bus when request completes
         }
 
-    private:
-        int id;
+        bool snoop(uint64_t addr, bool is_write);
 
+    private:
         CacheSet cache[NUM_SETS];
 
         void cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag);
@@ -44,6 +55,8 @@ class Cache : public cpu_cache_if, public sc_module {
         size_t find_lru(CacheSet &set);
         void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line);
         void set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, uint64_t data, uint64_t byte_in_line, bool valid, bool dirty);
+        void eviction_write_back_check(int set_index, size_t cache_hit_index, uint64_t byte_in_line);
+        void wait_for_bus_response();
 };
 
 #endif

@@ -45,7 +45,7 @@ void Cache::decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_
 
 void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, 
                             uint64_t data, uint64_t byte_in_line, bool valid, bool dirty) {
-    wait(SC_ZERO_TIME);
+    log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
 
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
     cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
@@ -53,11 +53,119 @@ void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag,
     cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
 }
 
+void Cache::eviction_write_back_check(int set_index, size_t cache_hit_index, uint64_t byte_in_line) {
+    log(name(), "EVICTION of line", cache_hit_index, "in set", set_index);
+
+    /* If evicted line is dirty, write to Main Memory */
+    if (cache[set_index].lines[cache_hit_index].dirty) {
+        log(name(), "WRITE BACK dirty evicted line to Main Memory");
+
+        //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
+
+        log(name(), "WRITE BACK evicted data to MAIN MEMORY");
+
+        bus->write(128, this);
+
+        while (!response_event.triggered()) {
+            wait(clk.posedge_event());
+            //log(name(), "waiting for response...");
+        }
+    }
+    /* If not dirty, replace evicted without consequence */
+}
+
+void Cache::wait_for_bus_response() {
+    while (!response_event.triggered()) {
+        wait(clk.posedge_event());
+        //log(name(), "waiting for response...");
+    }
+}
+
+void Cache::read_hit(int set_index, size_t cache_hit_index, 
+    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
+    log(name(), "READ HIT on address", addr);
+    if (!cache[set_index].lines[cache_hit_index].valid) {
+        /* If a Cache Line is Invalid, but that Tags match in a Cache Hit
+            we can use this same line when storing data from Bus
+            so that there is no need to evict the lru line */
+        log(name(), "line INVALID for read, SNOOPING BUS");
+
+        bus->read(addr, this);
+        wait_for_bus_response();
+
+        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
+
+        //stats_readmiss(id);
+    } else {
+        log(name(), "line VALID for read, fetching from CACHE");
+        //stats_readhit(id);
+    }
+    stats_readhit(id);
+}
+
+void Cache::read_miss(int set_index, size_t cache_hit_index, 
+    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
+    /* No matching tag in Cache Set (Cache Miss), so the data must 
+        be read from Bus and stored in the Least-recently 
+        used Cache line by evicting the data in that line */
+    log(name(), "READ MISS on address", addr);
+    log(name(), "WRITE ALLOCATE SNOOP BUS");
+
+    bus->read(addr, this);
+    wait_for_bus_response();
+
+    log(name(), "WRITE ALLOCATE COMPLETE, searching for LRU line...");
+
+    cache_hit_index = find_lru(cache[set_index]);
+
+    eviction_write_back_check(set_index, cache_hit_index, byte_in_line);
+
+    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
+
+    stats_readmiss(id);
+}
+
+void Cache::write_hit(int set_index, size_t cache_hit_index, 
+    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
+    /* If a Cache Hit occurs, simply write the data from the
+    CPU to the Cache Line */
+    log(name(), "WRITE HIT on address", addr);
+
+    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
+
+    bus->write_invalidate(addr, this);
+    wait_for_bus_response();
+    
+    stats_writehit(id);
+}
+
+void Cache::write_miss(int set_index, size_t cache_hit_index, 
+    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
+    /* If the Tags don't match (Catch Miss), find the Least Recently
+    used Cache Line and replace it with the data from CPU, evicting
+    the data in that line */
+
+    log(name(), "WRITE MISS on address", addr);
+    log(name(), "WRITE ALLOCATE SNOOP BUS");
+
+    bus->read(addr, this); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
+    wait_for_bus_response();
+
+    log(name(), "WRITE ALLOCATE COMPLETE, searching for LRU line...");
+
+    cache_hit_index = find_lru(cache[set_index]);
+
+    eviction_write_back_check(set_index, cache_hit_index, byte_in_line);
+
+    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
+
+    bus->write_invalidate(addr, this);
+    wait_for_bus_response();
+    
+    stats_writemiss(id);
+}
 
 
-/* cpu_cache_if interface method
- * Called by CPU.
- */
 int Cache::cpu_read(uint64_t addr) {
     int set_index;
     uint64_t tag;
@@ -70,86 +178,24 @@ int Cache::cpu_read(uint64_t addr) {
 
     cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
 
-    bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
     uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
-    cout << sc_time_stamp() << ": Initial LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
+    cout << sc_time_stamp() << ": INITIAL LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
 
     if (cache_hit) {
-        log(name(), "read hit on address", addr);
-        if (!cache_line_valid) {
-            /* If a Cache Line is Invalid, but that Tags match in a Cache Hit
-               we can use this same line when storing data from main memory
-               so that there is no need to evict the lru line */
-            log(name(), "line INVALID for read, fetching from main memory");
-
-            bus->read(addr, this);
-            while (!response_event.triggered()) {  // Wait but keep in sync with clock
-                wait(clk.posedge_event());
-                log(name(), "waiting for response");
-            }
-
-            set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
-            stats_readmiss(id);
-        } else {
-            log(name(), "line VALID for read, fetching from cache");
-            stats_readhit(id);
-        }
-        //stats_readhit(id);
+        read_hit(set_index, cache_hit_index, tag, data, byte_in_line, addr);
     } else {
-        /* No matching tag in Cache Set (Cache Miss), so the data must 
-           be read from Main Memory and stored in the Least-recently 
-           used Cache line by evicting the data in that line */
-        log(name(), "read miss on address", addr);
-        log(name(), "fetching from main memory");
-
-        bus->read(addr, this);
-        
-        while (!response_event.triggered()) { 
-            wait(clk.posedge_event());
-            //log(name(), "waiting for response");
-        }
-
-        log(name(), "searching for Least Recently Used line");
-
-        cache_hit_index = find_lru(cache[set_index]);
-
-        log(name(), "eviction of line", cache_hit_index, "in set", set_index);
-
-        /* If evicted line is dirty, write to Main Memory */
-        if (cache[set_index].lines[cache_hit_index].dirty) {
-            log(name(), "write-back dirty evicted line to Main Memory");
-
-            uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-
-            log(name(), "evicted data", evicted_data);
-
-            bus->write(128, this);
-            while (!response_event.triggered()) {  // Wait but keep in sync with clock
-                wait(clk.posedge_event());
-                //log(name(), "waiting for response");
-            }
-        } /* If not dirty, replace evicted without consequence */
-
-        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-    
-        stats_readmiss(id);
+        read_miss(set_index, cache_hit_index, tag, data, byte_in_line, addr);
     }
-    // Update LRU Queue
+
     update_lru(cache[set_index], cache_hit_index);
 
-    cout << sc_time_stamp() << ": Updated LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-    log(name(), "read done");
+    cout << sc_time_stamp() << ": UPDATED LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
     return 0;
 }
 
-/* cpu_cache_if interface method
- * Called by CPU.
- */
 int Cache::cpu_write(uint64_t addr) {
     int set_index;
     uint64_t tag;
@@ -162,69 +208,55 @@ int Cache::cpu_write(uint64_t addr) {
 
     cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
 
-    //bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
     uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
     
     wait(SC_ZERO_TIME);
 
-    cout << sc_time_stamp() << ": Initial LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-
+    cout << sc_time_stamp() << ": INITIAL LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
     if (cache_hit) {
-        /* If a Cache Hit occurs, simply write the data from the
-        CPU to the Cache Line */
-        log(name(), "write hit on address", addr);
-
-        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
-        
-        stats_writehit(id);
+        write_hit(set_index, cache_hit_index, tag, data, byte_in_line, addr);
     } else {
-        /* If the Tags don't match (Catch Miss), find the Least Recently
-        used Cache Line and replace it with the data from CPU, evicting
-        the data in that line */
-
-        log(name(), "write miss on address", addr);
-
-        bus->read(addr, this); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
-        
-        while (!response_event.triggered()) {  // Wait but keep in sync with clock
-            wait(clk.posedge_event());
-            //log(name(), "waiting for response");
-        }
-
-        cache_hit_index = find_lru(cache[set_index]);
-
-        log(name(), "evicted line", cache_hit_index, "in set", set_index);
-
-        /* If evicted line is dirty, write to Main Memory*/
-        if (cache[set_index].lines[cache_hit_index].dirty) {
-            log(name(), "write-back evicted line to Main Memory");
-
-            uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-
-            log(name(), "evicted data", evicted_data);
-
-            bus->write(128, this);
-            while (!response_event.triggered()) {  // Wait but keep in sync with clock
-                wait(clk.posedge_event());
-                //log(name(), "waiting for response");
-            }
-
-        } /* If not dirty, replace evicted without consequence */
-
-        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
-        
-        stats_writemiss(id);
+        write_miss(set_index, cache_hit_index, tag, data, byte_in_line, addr);
     }
 
-
-    // Update LRU Queue
     update_lru(cache[set_index], cache_hit_index);
 
-    cout << sc_time_stamp() << ": Updated LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-    log(name(), "read done");
+    cout << sc_time_stamp() << ": UPDATED LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
 
     return 0;
+}
+
+
+bool Cache::snoop(uint64_t addr, bool invalidate) {
+    int set_index;
+    uint64_t tag;
+    uint64_t byte_in_line;
+
+    bool cache_hit = false;
+    size_t cache_hit_index = -1;
+
+    decode_address(addr, set_index, tag, byte_in_line);
+
+    cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
+
+    bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
+
+    if (cache_hit) {
+        log(name(), "SNOOP HIT on address", addr);
+        if (invalidate) {
+            log(name(), "PROBE WRITE invalidates cache", id);
+            cache[set_index].lines[cache_hit_index].valid = false;
+        } else {
+            if (cache_line_valid) {
+                log(name(), "PROBE READ for valid cache", id);
+                return true;
+            } else {
+                log(name(), "PROBE READ for invalid cache", id);
+                return false;
+            }
+        }
+    }
+
+    return false;
 }

@@ -50,6 +50,8 @@ int sc_main(int argc, char *argv[]) {
         cache->clk(clk);
         bus->clk(clk);
 
+        bus->add_cache(cache);
+
         // Start Simulation
         sc_start();
 
