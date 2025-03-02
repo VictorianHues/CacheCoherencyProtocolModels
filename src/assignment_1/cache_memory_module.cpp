@@ -134,6 +134,9 @@ void CacheMemory::execute() {
 
             if (cache_hit) {
                 if (!cache_line_valid) {
+                    /* If a Cache Line is Invalid, but that Tags match in a Cache Hit
+                       we can use this same line when storing data from main memory
+                       so that there is no need to evict the lru line */
                     cout << sc_time_stamp() << ": CACHE Data INVALID for read, fetching from main memory" << endl;
 
                     read_from_main_memory(addr, data);              
@@ -149,6 +152,9 @@ void CacheMemory::execute() {
                 stats_readhit(0);
 
             } else {
+                /* No matching tag in Cache Set (Cache Miss), so the data must 
+                   be read from Main Memory and stored in the Least-recently 
+                   used Cache line by evicting the data in that line */
                 cout << sc_time_stamp() << ": CACHE Fetching from main memory" << endl;
 
                 read_from_main_memory(addr, data);      
@@ -174,7 +180,7 @@ void CacheMemory::execute() {
 
                 } /* If not dirty, replace evicted without consequence */
 
-                wait(SC_ZERO_TIME);
+                wait(SC_ZERO_TIME); // Wait to sync with Main Memory write
                 cache[set_addr].lines[cache_hit_index].tag = tag; // Set tag
                 cache[set_addr].lines[cache_hit_index].valid = true; // Set valid bit
                 cache[set_addr].lines[cache_hit_index].dirty = false; // Set dirty bit
@@ -203,7 +209,13 @@ void CacheMemory::execute() {
             cout << sc_time_stamp() << ": CACHE receives data from CPU: " << data << endl;
 
             if (!cache_hit) {
-                read_from_main_memory(addr, data); // Simulate reading a Cache Line from Main Memory
+                /* If the Tags don't match (Catch Miss), find the Least Recently
+                   used Cache Line and replace it with the data from CPU, evicting
+                   the data in that line */
+                
+                cout << sc_time_stamp() << ": CACHE Write-Allocate reading Cache LIne from Main Memory" << endl;
+
+                read_from_main_memory(addr, data); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
 
                 cout << sc_time_stamp() << ": CACHE searching for Least Recently Used line" << endl;
 
@@ -226,6 +238,8 @@ void CacheMemory::execute() {
             
                 stats_writemiss(0);
             } else {
+                /* If a Cache Hit occurs, simply write the data from the
+                   CPU to the Cache Line */
                 stats_writehit(0);
             }
 
