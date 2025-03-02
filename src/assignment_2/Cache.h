@@ -11,8 +11,23 @@
 #include "constants.h"
 
 class Cache : public cpu_cache_if, public sc_module {
+    /*
+        Cache class that implements the cpu_cache_if interface to allow
+        communication between the CPU and Cache modules.
+
+        The Cache class is responsible for handling requests from the CPU
+        and checking if a Cache Hit or Cache Miss occurs and modifying Cache 
+        Lines accordingly, sending them to the Bus module if otherwise. 
+        The Cache class maintains a list of Cache Sets, each with a number 
+        of Cache Lines. The Cache class is responsible for checking if a 
+        Cache Hit or Cache Miss occurs and updating the Cache Line accordingly.
+
+        The Cache class is implemented as a SystemC module and uses the
+        SystemC TLM interface for communication with the CPU and Bus modules.
+    */
     public:
         int id;
+        sc_time time_idle = SC_ZERO_TIME;
 
         sc_in<bool> clk;
         //sc_port<bus_slave_if> memory;
@@ -45,6 +60,10 @@ class Cache : public cpu_cache_if, public sc_module {
             log(name(), "received response from BUS");
             response_event.notify(); // Called by Bus when request completes
             log(name(), "notified response event");
+        }
+
+        sc_time get_time_idle() {
+            return time_idle;
         }
 
         bool snoop(uint64_t addr, bool is_write);

@@ -10,12 +10,12 @@
 
 class CPU : public sc_module {
     public:
-    sc_in_clk clock;
+    sc_in_clk clck;
     sc_port<cpu_cache_if> cache;
 
     CPU(sc_module_name name_, int id_) : sc_module(name_), id(id_) {
         SC_THREAD(execute);
-        sensitive << clock.pos();
+        sensitive << clck.pos();
         log(name(), "constructed with id", id);
         dont_initialize(); // don't call execute to initialise it.
     }
