@@ -3,89 +3,54 @@
 
 #include <iostream>
 #include <systemc.h>
+#include <queue>
 
 #include "bus_slave_if.h"
 #include "helpers.h"
 #include "constants.h"
 #include "psa.h"
+#include "Cache.h"
+#include "request_response_struct.h"
+
 
 
 class Memory : public bus_slave_if, public sc_module {
-    /*
-        Memory class that implements the bus_slave_if interface to allow
-        communication between the Bus and Memory modules.
-
-        The Memory class is responsible for handling requests from the Bus
-        and sending responses back to the Bus module.
-
-        The Memory module implements a simple memory model with a fixed
-        latency for read and write operations and no actual data storage. 
-        It also uses the Transaction Level Model to simulate communications,
-        but does not require actual data to be sent back to the Bus module.
-
-        The Memory class is implemented as a SystemC module and uses the SystemC
-        TLM interface for communication with the Bus module.
-    */
     public:
+        sc_in_clk clk;
+        sc_port<bus_slave_if> bus;
+
+        std::queue<std::pair<RequestResponse, int>> requestQueue;
+
         SC_CTOR(Memory) : read_count(0), write_count(0) {
-            // nothing to do here right now.
+            SC_THREAD(processRequestQueue);
+            sensitive << clk.pos();
         }
 
         ~Memory() {
             // nothing to do here right now.
         }
 
-        int read(uint64_t addr, Cache* requester) {
-            /*
-                Read data from the Memory. Called by Bus.
+        bool system_busy() {
+            return !requestQueue.empty();
+        }
 
-                Parameters:
-                    addr: address to read from
-                    requester: Cache module that is requesting the read
-                
-                Returns:
-                    0
-            */
-            assert((addr & 0x3) == 0);
-            log(name(), "READ from address", addr);
-            wait(MEM_LATENCY);
+        int read(RequestResponse req) {
+            log(name(), "READ from MAIN MEMORY requested");
+            std::pair<RequestResponse, int> req_with_mem_action = {req, 0};
+            requestQueue.push(req_with_mem_action);
             read_count++;
             return 0;
         }
 
-        int write(uint64_t addr, Cache* requester) {
-            /*
-                Write data to the Memory. Called by Bus.
-
-                Parameters:
-                    addr: address to write to
-                    requester: Cache module that is requesting the write
-                
-                Returns:
-                    0
-            */
-            assert((addr & 0x3) == 0);
-            log(name(), "WRITE to address", addr);
-            wait(MEM_LATENCY);
+        int write(RequestResponse req, uint64_t data) {
+            log(name(), "WRITE to MAIN MEMORY requested");
+            std::pair<RequestResponse, int> req_with_mem_action = {req, 1};
+            requestQueue.push(req_with_mem_action);
             write_count++;
             return 0;
         }
 
-        int write_invalidate(uint64_t addr, Cache* requester) {
-            /*
-                Implementation of the write_invalidate method from 
-                the bus_slave_if interface.
-
-                * Should add a new bus-to-memory interface method to only
-                include read and write operations.
-
-                Parameters:
-                    addr: address to write to
-                    requester: Cache module that is requesting the write
-                
-                Returns:
-                    0
-            */
+        int write_invalidate(RequestResponse req_res) {
             return 0;
         }
 
@@ -97,8 +62,38 @@ class Memory : public bus_slave_if, public sc_module {
             return write_count;
         }
 
+        void notify_response(RequestResponse req) {
+            log(name(), "received response from BUS");
+        }
+
     private:
         int read_count;
         int write_count;
+
+        void processRequestQueue() {
+
+            while (true) {
+                if (!requestQueue.empty()) {
+                    std::pair<RequestResponse, int> req_with_mem_action = requestQueue.front();
+                    requestQueue.pop();
+
+                    RequestResponse req = req_with_mem_action.first;
+                    int action = req_with_mem_action.second;
+
+
+                    wait(MEM_LATENCY);
+
+                    if (action == 0) { 
+                        log(name(), "READ from Main Memory COMPLETE");
+                        bus->notify_response(req);
+
+                    } else if (action == 1) { 
+                        log(name(), "WRITE to Main Memory COMPLETE");
+                        bus->notify_response(req);
+                    } 
+                }
+                wait();
+            }
+        }
 };
 #endif

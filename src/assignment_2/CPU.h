@@ -7,6 +7,7 @@
 #include "cpu_cache_if.h"
 #include "helpers.h"
 #include "psa.h"
+#include "request_response_struct.h"
 
 class CPU : public sc_module {
     public:
@@ -39,12 +40,10 @@ class CPU : public sc_module {
             case TraceFile::ENTRY_TYPE_READ:
                 log(name(), "reading from address", tr_data.addr);
                 cache->cpu_read(tr_data.addr);
-                log(name(), "READ DONE");
                 break;
             case TraceFile::ENTRY_TYPE_WRITE:
                 log(name(), "writing to address", tr_data.addr);
                 cache->cpu_write(tr_data.addr);
-                log(name(), "WRITE DONE");
                 break;
             case TraceFile::ENTRY_TYPE_NOP:
                 log(name(), "NOP");
@@ -55,7 +54,12 @@ class CPU : public sc_module {
             }
             wait();
         }
-        // Finished the Tracefile, now stop the simulation
+
+        log(name(), "END OF TRACE");
+        
+        while (cache->system_busy()) {
+            wait(1);
+        }
         sc_stop();
     }
 };

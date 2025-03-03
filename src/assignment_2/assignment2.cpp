@@ -54,12 +54,14 @@ int sc_main(int argc, char *argv[]) {
             cpus[i]->clck(clk);
             caches[i]->clk(clk);
             
-            bus->add_cache(caches[i]);
+            bus->add_cache(caches[i]);      
         }
 
         bus->memory(*memory);
+        memory->bus(*bus);
 
         bus->clk(clk);
+        memory->clk(clk);
 
 
         // Start Simulation
