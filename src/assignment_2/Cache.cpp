@@ -50,7 +50,7 @@ void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag,
     log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
     log(name(), "tag", tag, "data", data, "byte", byte_in_line, "valid", valid, "dirty", dirty);
 
-    wait(1, SC_NS);
+    wait(CACHE_CYCLE_LATENCY);
 
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
     cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
@@ -162,13 +162,13 @@ void Cache::processResponseQueue() {
                 case RequestResponse::READ:
                     log(name(), "READ RESPONSE on tag", res.tag, "in set", res.set_index);
 
-                    if (!res.cache_hit || !res.line_valid) {
+                    if (res.cache_hit && res.line_valid) {
+                        log(name(), "line valid for READ on tag", res.tag, "in set", res.set_index);
+                    } else {
                         res.cache_hit_index = find_lru(cache[res.set_index]);
                         log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
                     
                         set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
-                    } else {
-                        log(name(), "line valid for READ on tag", res.tag, "in set", res.set_index);
                     }
                     break;
                 case RequestResponse::WRITE:
@@ -209,7 +209,7 @@ bool Cache::snoop(RequestResponse req_res, int bus_action) {
         log(name(), "SNOOP HIT on tag", req_res.tag, "in set", req_res.set_index);
 
         if (bus_action == 0) {
-            log(name(), "SNOOP READ on tag", req_res.tag, "in set", req_res.set_index);
+            bus->snoop_read_success(req_res, 128);
             return true;
         } else if (bus_action == 2) {
             log(name(), "SNOOP WRITE INVALIDATE on tag", req_res.tag, "in set", req_res.set_index);

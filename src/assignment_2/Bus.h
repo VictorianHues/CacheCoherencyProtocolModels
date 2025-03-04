@@ -65,6 +65,12 @@ class Bus : public bus_slave_if, public sc_module {
             std::pair<RequestResponse, int> res_with_bus_action = {res, 3};
             responseQueue.push(res_with_bus_action);
         }
+
+        void snoop_read_success(RequestResponse res, uint64_t data) {
+            log(name(), "SNOOP READ on tag", res.tag, "in set", res.set_index);
+            std::pair<RequestResponse, int> res_with_bus_action = {res, 0};
+            responseQueue.push(res_with_bus_action);
+        }
     
     private:
         void processRequestQueue() {

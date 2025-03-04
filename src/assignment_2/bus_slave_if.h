@@ -10,12 +10,13 @@ class Cache;
 class bus_slave_if : public virtual sc_interface {
     public:
     sc_event bus_released;
-    
+
     virtual bool system_busy() = 0;
     virtual int read(RequestResponse req_res) = 0;
     virtual int write(RequestResponse req_res, uint64_t data) = 0;
     virtual int write_invalidate(RequestResponse req_res) = 0;
     virtual void notify_response(RequestResponse req_res) = 0;
+    virtual void snoop_read_success(RequestResponse req_res, uint64_t data) = 0;
 };
 
 #endif

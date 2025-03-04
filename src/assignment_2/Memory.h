@@ -66,6 +66,10 @@ class Memory : public bus_slave_if, public sc_module {
             log(name(), "received response from BUS");
         }
 
+        void snoop_read_success(RequestResponse res, uint64_t data) {
+            log(name(), "Separate Cache-Bus-Memory interface coupling into two please");
+        }
+
     private:
         int read_count;
         int write_count;
@@ -84,11 +88,11 @@ class Memory : public bus_slave_if, public sc_module {
                     wait(MEM_LATENCY);
 
                     if (action == 0) { 
-                        log(name(), "READ from Main Memory COMPLETE");
+                        log(name(), "READ from Main Memory COMPLETE", req.tag, "in set", req.set_index);
                         bus->notify_response(req);
 
                     } else if (action == 1) { 
-                        log(name(), "WRITE to Main Memory COMPLETE");
+                        log(name(), "WRITE to Main Memory COMPLETE for tag", req.tag, "in set", req.set_index);
                         //bus->notify_response(req);
                     } 
                 }
