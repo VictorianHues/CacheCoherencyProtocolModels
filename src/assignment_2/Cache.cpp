@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <systemc.h>
+#include <unordered_map>
 
 #include "Cache.h"
 #include "psa.h"
+#include "request_response_struct.h"
 
 void Cache::cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag) {
     for (size_t i = 0 ; i < SET_ASSOCIATIVITY ; i++) { // Iterate over lines in set
@@ -48,193 +50,22 @@ void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag,
     log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
     log(name(), "tag", tag, "data", data, "byte", byte_in_line, "valid", valid, "dirty", dirty);
 
+    wait(CACHE_CYCLE_LATENCY);
+
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
     cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
     cache[set_index].lines[cache_hit_index].dirty = dirty; // Set dirty bit
     cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
-}
-
-void Cache::eviction_write_back_check(int set_index, size_t cache_hit_index, uint64_t byte_in_line) {
-    log(name(), "EVICTION of line", cache_hit_index, "in set", set_index);
-
-    /* If evicted line is dirty, write to Main Memory */
-    if (cache[set_index].lines[cache_hit_index].dirty) {
-        log(name(), "WRITE BACK dirty evicted line to Main Memory");
-
-        //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-
-        log(name(), "WRITE BACK evicted data to MAIN MEMORY");
-
-        bus->write(128, this);
-
-        while (!response_event.triggered()) {
-            wait(clk.posedge_event());
-            //log(name(), "waiting for response...");
-        }
-    }
-    /* If not dirty, replace evicted without consequence */
-}
-
-void Cache::wait_for_bus_response() {
-    while (!response_event.triggered()) {
-        wait(clk.posedge_event());
-        //log(name(), "waiting for response...");
-    }
-    wait(clk.posedge_event());
-}
-
-void Cache::read_hit(int set_index, size_t &cache_hit_index, 
-    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
-    log(name(), "READ HIT on address", addr);
-    if (!cache[set_index].lines[cache_hit_index].valid) {
-        /* If a Cache Line is Invalid, but that Tags match in a Cache Hit
-            we can use this same line when storing data from Bus
-            so that there is no need to evict the lru line */
-        log(name(), "line INVALID for read, SNOOPING BUS");
-
-        bus->read(addr, this);
-        wait_for_bus_response();
-
-        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
-        stats_readmiss(id);
-    } else {
-        log(name(), "line VALID for read, fetching from CACHE");
-        stats_readhit(id);
-    }
-    //stats_readhit(id);
-}
-
-void Cache::read_miss(int set_index, size_t &cache_hit_index, 
-    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
-    /* No matching tag in Cache Set (Cache Miss), so the data must 
-        be read from Bus and stored in the Least-recently 
-        used Cache line by evicting the data in that line */
-    log(name(), "READ MISS on address", addr);
-    log(name(), "WRITE ALLOCATE SNOOP BUS");
-
-    bus->read(addr, this);
-    wait_for_bus_response();
-
-    log(name(), "WRITE ALLOCATE COMPLETE, searching for LRU line...");
-
-    cache_hit_index = find_lru(cache[set_index]);
-
-    eviction_write_back_check(set_index, cache_hit_index, byte_in_line);
-
-    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
-    stats_readmiss(id);
-}
-
-void Cache::write_hit(int set_index, size_t &cache_hit_index, 
-    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
-    /* If a Cache Hit occurs, simply write the data from the
-    CPU to the Cache Line */
-    log(name(), "WRITE HIT on address", addr);
-
-    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
-
-    bus->write_invalidate(addr, this);
-    wait_for_bus_response();
-    
-    stats_writehit(id);
-}
-
-void Cache::write_miss(int set_index, size_t &cache_hit_index, 
-    uint64_t tag, uint64_t data, uint64_t byte_in_line, uint64_t addr) {
-    /* If the Tags don't match (Catch Miss), find the Least Recently
-    used Cache Line and replace it with the data from CPU, evicting
-    the data in that line */
-
-    log(name(), "WRITE MISS on address", addr);
-    log(name(), "WRITE ALLOCATE SNOOP BUS");
-
-    bus->read(addr, this); // Simulates WRITE-ALLOCATE reading a Cache Line from Main Memory
-    wait_for_bus_response();
-
-    log(name(), "WRITE ALLOCATE COMPLETE, searching for LRU line...");
-
-    cache_hit_index = find_lru(cache[set_index]);
-
-    eviction_write_back_check(set_index, cache_hit_index, byte_in_line);
-
-    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
-
-    bus->write_invalidate(addr, this);
-    wait_for_bus_response();
-    
-    stats_writemiss(id);
-}
-
-
-int Cache::cpu_read(uint64_t addr) {
-    int set_index;
-    uint64_t tag;
-    uint64_t byte_in_line;
-
-    bool cache_hit = false;
-    size_t cache_hit_index = -1;
-
-    decode_address(addr, set_index, tag, byte_in_line);
-
-    cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
-
-    uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-
-    log(name(), "CPU READ on tag", tag, "set", set_index, "byte", byte_in_line);
-
-    cout << sc_time_stamp() << ": INITIAL LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-
-    if (cache_hit) {
-        read_hit(set_index, cache_hit_index, tag, data, byte_in_line, addr);
-    } else {
-        read_miss(set_index, cache_hit_index, tag, data, byte_in_line, addr);
-    }
 
     update_lru(cache[set_index], cache_hit_index);
-
-    cout << sc_time_stamp() << ": UPDATED LRU Queue End: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-    return 0;
-}
-
-int Cache::cpu_write(uint64_t addr) {
-    int set_index;
-    uint64_t tag;
-    uint64_t byte_in_line;
-
-    bool cache_hit = false;
-    size_t cache_hit_index = -1;
-
-    decode_address(addr, set_index, tag, byte_in_line);
-
-    cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
-
-    uint64_t data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
-    
-    log(name(), "CPU WRITE on tag", tag, "set", set_index, "byte", byte_in_line);
-
-    cout << sc_time_stamp() << ": INITIAL LRU Queue: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-    if (cache_hit) {
-        write_hit(set_index, cache_hit_index, tag, data, byte_in_line, addr);
-    } else {
-        write_miss(set_index, cache_hit_index, tag, data, byte_in_line, addr);
-    }
-
-    update_lru(cache[set_index], cache_hit_index);
-
     cout << sc_time_stamp() << ": UPDATED LRU Queue: " << cache[set_index].lru[0] << " " << cache[set_index].lru[1] << " " << cache[set_index].lru[2] << " " << cache[set_index].lru[3] << " " << cache[set_index].lru[4] << " " << cache[set_index].lru[5] << " " << cache[set_index].lru[6] << " " << cache[set_index].lru[7] << endl;
-
-    return 0;
 }
 
+RequestResponse Cache::initialize_request_response(uint64_t addr, RequestResponse::RequestType request_type) {
+    int cache_id = id;
 
-bool Cache::snoop(uint64_t addr, bool invalidate) {
-    int set_index;
     uint64_t tag;
+    int set_index;
     uint64_t byte_in_line;
 
     bool cache_hit = false;
@@ -246,21 +77,159 @@ bool Cache::snoop(uint64_t addr, bool invalidate) {
 
     bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
 
-    if (cache_hit) {
-        log(name(), "SNOOP HIT on address", addr);
-        if (invalidate) {
-            log(name(), "PROBE WRITE invalidates cache", id);
-            cache[set_index].lines[cache_hit_index].valid = false;
-        } else {
-            if (cache_line_valid) {
-                log(name(), "PROBE READ for valid cache", id);
-                return true;
-            } else {
-                log(name(), "PROBE READ for invalid cache", id);
-                return false;
+    return {cache_id, addr, tag, set_index, byte_in_line, cache_hit, cache_hit_index, cache_line_valid, request_type};
+}
+
+int Cache::cpu_read(uint64_t addr) {
+    log(name(), "CPU READ on Cache", id);
+    RequestResponse req = initialize_request_response(addr, RequestResponse::READ);
+
+    requestQueue.push_back(req);
+
+    log(name(), "READ REQUEST on tag", req.tag, "in set", req.set_index, "type", req.request_type);
+
+    return 0;
+}
+
+int Cache::cpu_write(uint64_t addr) {
+    log(name(), "CPU WRITE on Cache", id);
+    RequestResponse req = initialize_request_response(addr, RequestResponse::WRITE);
+
+    requestQueue.push_back(req);
+
+    log(name(), "WRITE REQUEST on tag", req.tag, "in set", req.set_index, "type", req.request_type);
+
+    return 0;
+}
+
+void Cache::processRequestQueue() {
+    while(true) {
+        if (!requestQueue.empty()) {
+            log(name(), "PROCESSING REQUEST QUEUE on Cache", id);
+            RequestResponse req = requestQueue.front();
+            requestQueue.pop_front();
+
+            //uint64_t data = 128; // Placeholder data
+
+            switch (req.request_type) {
+                case RequestResponse::READ:
+                    if (req.cache_hit && req.line_valid) {
+                        log(name(), "READ HIT on address on tag", req.tag, "in set", req.set_index);
+                        responseQueue.push_back(req);
+                        stats_readhit(id);
+                    } else {
+                        log(name(), "READ MISS or INVALID on tag", req.tag, "in set", req.set_index);
+
+                        bus->read(req);
+                        
+                        stats_readmiss(id);
+                    }
+                    break;
+                case RequestResponse::WRITE:
+                    if (req.cache_hit) {
+                        log(name(), "WRITE HIT on tag", req.tag, "in set", req.set_index);
+                        responseQueue.push_back(req);
+                        stats_writehit(id);
+                    } else {
+                        log(name(), "WRITE MISS, allocating from Main Memory on tag", req.tag, "in set", req.set_index);
+
+                        bus->read(req);
+
+                        stats_writemiss(id);
+                    }
+                    break;
+                case RequestResponse::WRITE_INVALIDATE:
+                    break;
+                case RequestResponse::INVALIDATE_SELF:
+                    log(name(), "INVALIDATING SELF on tag", req.tag, "in set", req.set_index);
+                    cache[req.set_index].lines[req.cache_hit_index].valid = false;
+                    break;
             }
         }
+        wait();
     }
+}
 
+void Cache::processResponseQueue() {
+    while(true) {
+        if (!responseQueue.empty()) {
+            RequestResponse res = responseQueue.front();
+            responseQueue.pop_front();
+
+            uint64_t data = 128; // Placeholder data
+
+            switch (res.request_type) {
+                case RequestResponse::READ:
+                    log(name(), "READ RESPONSE on tag", res.tag, "in set", res.set_index);
+
+                    if (res.cache_hit && res.line_valid) {
+                        log(name(), "line valid for READ on tag", res.tag, "in set", res.set_index);
+                    } else {
+                        res.cache_hit_index = find_lru(cache[res.set_index]);
+                        log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
+                    
+                        set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
+                    }
+                    break;
+                case RequestResponse::WRITE:
+                    log(name(), "WRITE RESPONSE on tag", res.tag, "in set", res.set_index);
+
+                    if (!res.cache_hit) {
+                        res.cache_hit_index = find_lru(cache[res.set_index]);
+                        log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
+
+                        if (cache[res.set_index].lines[res.cache_hit_index].dirty && cache[res.set_index].lines[res.cache_hit_index].valid) {
+                            log(name(), "CACHE Write-back evicted to Main Memory");
+
+                            bus->write(res, data); // Write evicted data to bus
+
+                            log(name(), "CACHE Write-back evicted Complete");
+                        }
+                    }
+
+                    set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, true);
+
+                    bus->write_invalidate(res);  // Invalidate other caches
+
+                    break;
+                case RequestResponse::WRITE_INVALIDATE:
+                    break;
+                case RequestResponse::INVALIDATE_SELF:
+                    break;
+            }
+        }
+        wait();
+    }
+}
+
+
+bool Cache::snoop(RequestResponse req_res, int bus_action) {
+    
+    if (req_res.cache_hit && req_res.line_valid) {
+        log(name(), "SNOOP HIT on tag", req_res.tag, "in set", req_res.set_index);
+
+        if (bus_action == 0) {
+            bus->snoop_read_success(req_res, 128);
+            return true;
+        } else if (bus_action == 2) {
+            log(name(), "SNOOP WRITE INVALIDATE on tag", req_res.tag, "in set", req_res.set_index);
+            cache[req_res.set_index].lines[req_res.cache_hit_index].valid = false;
+            return true;
+        }
+    } else {
+        log(name(), "SNOOP MISS on tag", req_res.tag, "in set", req_res.set_index);
+    }
     return false;
+}
+
+
+void Cache::notify_response(RequestResponse res) {
+    
+    if (res.request_type == RequestResponse::READ) {
+        log(name(), "NOTIFY READ RESPONSE on tag", res.tag, "in set", res.set_index);
+        responseQueue.push_back(res);
+    } else if (res.request_type == RequestResponse::WRITE) {
+        log(name(), "NOTIFY WRITE RESPONSE on tag", res.tag, "in set", res.set_index);
+        responseQueue.push_back(res);
+    }
 }

@@ -4,18 +4,12 @@
 #include <systemc.h>
 #include <vector>
 #include <queue>
+#include <random>
 
 #include "bus_slave_if.h"
 #include "Cache.h"
 #include "psa.h"
-
-struct BusRequestResponse {
-    Cache* source_cache;
-    uint64_t addr;
-    int request_type;
-    bool snoop_success;
-};
-
+#include "request_response_struct.h"
 
 class Bus : public bus_slave_if, public sc_module {
     public:
@@ -24,8 +18,8 @@ class Bus : public bus_slave_if, public sc_module {
 
         std::vector<Cache*> cache_list;
 
-        std::queue<BusRequestResponse> requestQueue;
-        std::queue<BusRequestResponse> responseQueue;
+        std::queue<std::pair<RequestResponse, int>> requestQueue;
+        std::queue<std::pair<RequestResponse, int>> responseQueue;
     
         SC_CTOR(Bus) {
             SC_THREAD(processRequestQueue);
@@ -36,71 +30,95 @@ class Bus : public bus_slave_if, public sc_module {
             sensitive << clk.pos();
             //dont_initialize();
         }
+
+        bool system_busy() {
+            return !requestQueue.empty() || !responseQueue.empty() || memory->system_busy();
+        }
     
-        int read(uint64_t addr, Cache* requester) {
-            log(name(), "READ pushed to queue for address", addr);
-            BusRequestResponse req = {requester, addr, 0, false};
-            requestQueue.push(req);
+        int read(RequestResponse req) {
+            log(name(), "READ pushed to queue from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+            std::pair<RequestResponse, int> req_with_bus_action = {req, 0};
+            requestQueue.push(req_with_bus_action);
             return 0;
         }
     
-        int write(uint64_t addr, Cache* requester) {
-            log(name(), "WRITE pushed to queue for address", addr);
-            BusRequestResponse req = {requester, addr, 1, false};
-            requestQueue.push(req);
+        int write(RequestResponse req, uint64_t data) {
+            log(name(), "WRITE pushed to queue from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+            std::pair<RequestResponse, int> req_with_bus_action = {req, 1};
+            requestQueue.push(req_with_bus_action);
             return 0;
         }
 
-        int write_invalidate(uint64_t addr, Cache* requester) {
-            log(name(), "WRITE INVALIDATE pushed to queue for address", addr);
-            BusRequestResponse req = {requester, addr, 2, false};
-            requestQueue.push(req);
+        int write_invalidate(RequestResponse req) {
+            log(name(), "WRITE INVALIDATE pushed to queue from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+            std::pair<RequestResponse, int> req_with_bus_action = {req, 2};
+            requestQueue.push(req_with_bus_action);
             return 0;
         }
 
         void add_cache(Cache* new_cache) {
             cache_list.push_back(new_cache);
         }
+
+        void notify_response(RequestResponse res) {
+            log(name(), "received response from MAIN MEMORY");
+            std::pair<RequestResponse, int> res_with_bus_action = {res, 3};
+            responseQueue.push(res_with_bus_action);
+        }
+
+        void snoop_read_success(RequestResponse res, uint64_t data) {
+            log(name(), "SNOOP READ on tag", res.tag, "in set", res.set_index);
+            std::pair<RequestResponse, int> res_with_bus_action = {res, 0};
+            responseQueue.push(res_with_bus_action);
+        }
     
     private:
         void processRequestQueue() {
             while(true) {
                 if (!requestQueue.empty()) {
-                    BusRequestResponse req = requestQueue.front();
+                    std::pair<RequestResponse, int> req_with_bus_action = requestQueue.front();
                     requestQueue.pop();
 
-                    log(name(), "processing REQUEST from CACHE", req.source_cache->id, " for address", req.addr);
+                    RequestResponse req = req_with_bus_action.first;
+                    int bus_action = req_with_bus_action.second;
+                    
+                    log(name(), "processing request queue for Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
 
-                
-                    assert((req.addr & 0x3) == 0);
+                    uint64_t data = 128; // Placeholder data
+                    bool snoop_hit = false;
 
-                    if (req.request_type == 0) { // Search for data in caches
-                        log(name(), "READ SNOOP for data from CACHE", req.source_cache->id);
-                        for (auto& cache : cache_list) {
-                            if (cache && cache != req.source_cache) {
-                                req.snoop_success = cache->snoop(req.addr, false);
+                    log(name(), "processing request from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+
+                    switch (bus_action) {
+                        case 0:
+                            for (Cache* cache : cache_list) {
+                                log(name(), "READ SNOOPING from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+                                if (cache->id != req.cache_id) {
+                                    if (cache->snoop(req, bus_action)) {
+                                        log(name(), "SNOOP HIT on Cache", cache->id, "from CACHE", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+                                        snoop_hit = true;
+                                    }
+                                }
                             }
-                        }
-                        if (req.snoop_success) {
-                            log(name(), "address HIT in SNOOPED caches, read from cache for address", req.addr);
-                        } else {
-                            log(name(), "address MISS in SNOOPED caches, read from Main Memory for address", req.addr);
-                            memory->read(req.addr, req.source_cache);
-                        }
-                    } else if (req.request_type == 1) { // Write to Main Memory
-                        log(name(), "WRITE to Main Memory from CACHE", req.source_cache->id);
-                        memory->write(req.addr, req.source_cache);
-                    } else if (req.request_type == 2) { // Write in local Cache invalidates all other caches
-                        log(name(), "WRITE INVALIDATE from CACHE", req.source_cache->id);
-                        for (auto& cache : cache_list) {
-                            if (cache && cache != req.source_cache) {
-                                req.snoop_success = cache->snoop(req.addr, true);
+                            if (!snoop_hit) {
+                                memory->read(req);
                             }
-                        }
+                            break;
+                        case 1:
+                            memory->write(req, data);
+                            break;
+                        case 2:
+                            for (Cache* cache : cache_list) {
+                                log(name(), "INVALIDATION SNOOPING from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+                                if (cache->id != req.cache_id) {
+                                    if (cache->snoop(req, bus_action)) {
+                                        log(name(), "SNOOP HIT on Cache", cache->id, "from CACHE", req.cache_id, "for tag", req.tag, "in set", req.set_index);
+                                        snoop_hit = true;
+                                    }
+                                }
+                            }
+                            break;
                     }
-
-                    responseQueue.push(req);
-
                 }
                 wait();
             }
@@ -109,16 +127,34 @@ class Bus : public bus_slave_if, public sc_module {
         void processResponsesQueue() {
             while (true) {
                 if (!responseQueue.empty()) {
-                    BusRequestResponse response = responseQueue.front();
+                    std::pair<RequestResponse, int> res_with_bus_action = responseQueue.front();
                     responseQueue.pop();
-    
-                    log(name(), "processing RESPONSE from CACHE", response.source_cache->id, " for address", response.addr);
 
-                    /*
-                        The Transaction Level Modeling (TLM) interface doesn't 
-                        require a response to be sent back to the cache.
-                    */
-                    response.source_cache->notify_response();
+                    RequestResponse res = res_with_bus_action.first;
+                    //int bus_action = res_with_bus_action.second;
+
+                    log(name(), "processing response queue for Cache", res.cache_id, "for tag", res.tag, "in set", res.set_index);
+
+                    switch (res.request_type) {
+                        case RequestResponse::READ:
+                            for (Cache* cache : cache_list) {
+                                if (cache->id == res.cache_id) {
+                                    cache->notify_response(res);
+                                }
+                            }
+                            break;
+                        case RequestResponse::WRITE:
+                            for (Cache* cache : cache_list) {
+                                if (cache->id == res.cache_id) {
+                                    cache->notify_response(res);
+                                }
+                            }
+                            break;
+                        case RequestResponse::WRITE_INVALIDATE:
+                            break;
+                        case RequestResponse::INVALIDATE_SELF:
+                            break;
+                    }
                 }
 
                 wait();

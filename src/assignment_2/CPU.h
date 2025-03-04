@@ -10,12 +10,12 @@
 
 class CPU : public sc_module {
     public:
-    sc_in_clk clock;
+    sc_in_clk clck;
     sc_port<cpu_cache_if> cache;
 
     CPU(sc_module_name name_, int id_) : sc_module(name_), id(id_) {
         SC_THREAD(execute);
-        sensitive << clock.pos();
+        sensitive << clck.pos();
         log(name(), "constructed with id", id);
         dont_initialize(); // don't call execute to initialise it.
     }
@@ -39,12 +39,10 @@ class CPU : public sc_module {
             case TraceFile::ENTRY_TYPE_READ:
                 log(name(), "reading from address", tr_data.addr);
                 cache->cpu_read(tr_data.addr);
-                log(name(), "READ DONE");
                 break;
             case TraceFile::ENTRY_TYPE_WRITE:
                 log(name(), "writing to address", tr_data.addr);
                 cache->cpu_write(tr_data.addr);
-                log(name(), "WRITE DONE");
                 break;
             case TraceFile::ENTRY_TYPE_NOP:
                 log(name(), "NOP");
@@ -55,7 +53,12 @@ class CPU : public sc_module {
             }
             wait();
         }
-        // Finished the Tracefile, now stop the simulation
+
+        log(name(), "END OF TRACE");
+        
+        while (cache->system_busy()) {
+            wait(1);
+        }
         sc_stop();
     }
 };
