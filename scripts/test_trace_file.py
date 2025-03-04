@@ -17,7 +17,6 @@ def generate_multi_cpu_tracefile(filename, num_procs, num_entries):
             trace.write(addr)  # 50% chance of write
 
     trace.close()
-    print(f"Generated tracefile: {filename} with {num_procs} CPUs and {num_entries} entries")
 
 def generate_manual_tracefile(filename):
     trace = Trace(filename, 1)
@@ -33,6 +32,38 @@ def generate_manual_tracefile(filename):
 
     trace.close()
 
+def generate_all_writes_same_address(filename, num_procs, num_entries):
+    trace = Trace(filename, num_procs)
+
+    for i in range(num_entries):
+        cpu_id = i % num_procs  # Assign requests round-robin
+
+        trace.write(0x1000)
+
+    trace.close()
+
+def generate_all_reads_same_address(filename, num_procs, num_entries):
+    trace = Trace(filename, num_procs)
+
+    for i in range(num_entries):
+        cpu_id = i % num_procs  # Assign requests round-robin
+
+        trace.read(0x1000)
+
+    trace.close()
+
+def generate_50_50_reads_writes_same_address(filename, num_procs, num_entries):
+    trace = Trace(filename, num_procs)
+
+    for i in range(num_entries):
+        cpu_id = i % num_procs  # Assign requests round-robin
+
+        if num_entries % 2 == 0:
+            trace.read(0x1000)
+        else:
+            trace.write(0x1000)
+
+    trace.close()
 
 
 # Run from command line
@@ -45,5 +76,5 @@ if __name__ == "__main__":
     num_procs = int(sys.argv[2])
     num_entries = int(sys.argv[3])
 
-    #generate_multi_cpu_tracefile(filename, num_procs, num_entries)
-    generate_manual_tracefile(filename)
+    generate_multi_cpu_tracefile(filename, num_procs, num_entries)
+    #generate_manual_tracefile(filename)

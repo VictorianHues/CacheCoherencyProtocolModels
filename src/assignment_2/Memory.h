@@ -89,7 +89,7 @@ class Memory : public bus_slave_if, public sc_module {
 
                     } else if (action == 1) { 
                         log(name(), "WRITE to Main Memory COMPLETE");
-                        bus->notify_response(req);
+                        //bus->notify_response(req);
                     } 
                 }
                 wait();

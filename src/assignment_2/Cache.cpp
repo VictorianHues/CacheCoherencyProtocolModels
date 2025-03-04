@@ -50,6 +50,8 @@ void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag,
     log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
     log(name(), "tag", tag, "data", data, "byte", byte_in_line, "valid", valid, "dirty", dirty);
 
+    wait(1, SC_NS);
+
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
     cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
     cache[set_index].lines[cache_hit_index].dirty = dirty; // Set dirty bit
@@ -119,6 +121,7 @@ void Cache::processRequestQueue() {
                         log(name(), "READ MISS or INVALID on tag", req.tag, "in set", req.set_index);
 
                         bus->read(req);
+                        
                         stats_readmiss(id);
                     }
                     break;
@@ -128,8 +131,7 @@ void Cache::processRequestQueue() {
                         responseQueue.push_back(req);
                         stats_writehit(id);
                     } else {
-                        log(name(), "WRITE MISS on tag", req.tag, "in set", req.set_index);
-                        log(name(), "WRITE ALLOCATE on tag", req.tag, "in set", req.set_index);
+                        log(name(), "WRITE MISS, allocating from Main Memory on tag", req.tag, "in set", req.set_index);
 
                         bus->read(req);
 
@@ -162,7 +164,8 @@ void Cache::processResponseQueue() {
 
                     if (!res.cache_hit || !res.line_valid) {
                         res.cache_hit_index = find_lru(cache[res.set_index]);
-                        log(name(), "EVICTION and reWRITE of LRU line", res.cache_hit_index, "in set", res.set_index);
+                        log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
+                    
                         set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
                     } else {
                         log(name(), "line valid for READ on tag", res.tag, "in set", res.set_index);
@@ -171,13 +174,20 @@ void Cache::processResponseQueue() {
                 case RequestResponse::WRITE:
                     log(name(), "WRITE RESPONSE on tag", res.tag, "in set", res.set_index);
 
-                    if (!res.cache_hit || !res.line_valid) {
+                    if (!res.cache_hit) {
                         res.cache_hit_index = find_lru(cache[res.set_index]);
                         log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
+
+                        if (cache[res.set_index].lines[res.cache_hit_index].dirty && cache[res.set_index].lines[res.cache_hit_index].valid) {
+                            log(name(), "CACHE Write-back evicted to Main Memory");
+
+                            bus->write(res, data); // Write evicted data to bus
+
+                            log(name(), "CACHE Write-back evicted Complete");
+                        }
                     }
 
-                    log(name(), "WRITE on tag", res.tag, "in set", res.set_index);
-                    set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
+                    set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, true);
 
                     bus->write_invalidate(res);  // Invalidate other caches
 
