@@ -100,19 +100,6 @@ int Cache::cpu_write(uint64_t addr) {
     return 0;
 }
 
-void Cache::wait_for_bus_response() {
-   sc_time start_time = sc_time_stamp();
-
-    do {
-        wait(clk.posedge_event());
-        log(name(), "waiting for response...");
-    } while (!response_event.triggered());
-    sc_time end_time = sc_time_stamp();
-    sc_time wait_time = end_time - start_time;
-
-    time_idle += wait_time;
-}
-
 void Cache::processRequestQueue() {
     while(true) {
         if (!requestQueue.empty()) {
@@ -130,8 +117,6 @@ void Cache::processRequestQueue() {
                         stats_readhit(id);
                     } else {
                         log(name(), "READ MISS or INVALID on tag", req.tag, "in set", req.set_index);
-                        
-                        wait_for_bus_response();
 
                         bus->read(req);
                         stats_readmiss(id);
@@ -145,8 +130,6 @@ void Cache::processRequestQueue() {
                     } else {
                         log(name(), "WRITE MISS on tag", req.tag, "in set", req.set_index);
                         log(name(), "WRITE ALLOCATE on tag", req.tag, "in set", req.set_index);
-
-                        wait_for_bus_response();
 
                         bus->read(req);
 
@@ -196,7 +179,6 @@ void Cache::processResponseQueue() {
                     log(name(), "WRITE on tag", res.tag, "in set", res.set_index);
                     set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
 
-                    wait_for_bus_response();
                     bus->write_invalidate(res);  // Invalidate other caches
 
                     break;

@@ -25,7 +25,11 @@ def generate_manual_tracefile(filename):
     # Simulate memory operations
     for i in range(num_entries):
         cpu_id = i % num_procs  # Assign requests round-robin
-        trace.read(0x100)
+        if i % 2 == 0:
+            trace.write(0x100)
+        else:
+            trace.read(0x100)
+
 
     trace.close()
 

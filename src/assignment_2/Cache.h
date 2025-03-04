@@ -16,7 +16,6 @@
 class Cache : public cpu_cache_if, public sc_module {
     public:
         int id;
-        sc_time time_idle = SC_ZERO_TIME;
         sc_event response_event;
 
         bool new_write_pending = false;
@@ -52,10 +51,6 @@ class Cache : public cpu_cache_if, public sc_module {
         int system_busy() {
             return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
         }
-
-        sc_time get_time_idle() {
-            return time_idle;
-        }
     private:
         CacheSet cache[NUM_SETS];
 
@@ -65,7 +60,6 @@ class Cache : public cpu_cache_if, public sc_module {
         void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line);
         void set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, uint64_t data, uint64_t byte_in_line, bool valid, bool dirty);
 
-        void wait_for_bus_response();
         void processRequestQueue();
         void processResponseQueue();
 

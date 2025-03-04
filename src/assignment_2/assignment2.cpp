@@ -76,22 +76,6 @@ int sc_main(int argc, char *argv[]) {
         cout << "Memory read count: " << read_count << endl;
         cout << "Memory write count: " << write_count << endl;
 
-        double cache_idle_time = 0;
-
-        for (uint32_t i = 0; i < num_cpus; ++i) {
-            double idle_time = caches[i]->get_time_idle().to_seconds();
-            cache_idle_time += idle_time;
-
-            cout << "CACHE " << i << " idle time: " << idle_time << endl;
-        }
-
-        double cache_total_time = sc_time_stamp().to_seconds();
-        double cache_average_time = cache_total_time > 0 ? cache_idle_time / cache_total_time : 0.0;
-
-        cout << "Total idle time: " << cache_idle_time << endl;
-        cout << "Total time: " << cache_total_time << endl;
-        cout << "Average idle time: " << cache_average_time << endl;
-
         // Cleanup components
         for (uint32_t i = 0; i < num_cpus; ++i) {
             delete cpus[i];
