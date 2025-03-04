@@ -17,16 +17,12 @@ class Cache : public cpu_cache_if, public sc_module {
     public:
         int id;
         sc_time time_idle = SC_ZERO_TIME;
-        bool request_queue_empty = true;
-        bool response_queue_empty = true;
+        sc_event response_event;
 
         bool new_write_pending = false;
 
         std::deque<RequestResponse> requestQueue;
         std::deque<RequestResponse> responseQueue;
-
-        std::unordered_map<uint64_t, std::deque<std::vector<RequestResponse>>> pending_reads_queue;
-        std::unordered_map<uint64_t, std::deque<RequestResponse>> pending_writes_queue;
 
         sc_in<bool> clk;
         sc_port<bus_slave_if> bus;
@@ -54,7 +50,7 @@ class Cache : public cpu_cache_if, public sc_module {
 
 
         int system_busy() {
-            return !request_queue_empty || !response_queue_empty || bus->system_busy();
+            return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
         }
 
         sc_time get_time_idle() {
@@ -69,11 +65,9 @@ class Cache : public cpu_cache_if, public sc_module {
         void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line);
         void set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, uint64_t data, uint64_t byte_in_line, bool valid, bool dirty);
 
+        void wait_for_bus_response();
         void processRequestQueue();
         void processResponseQueue();
-
-
-
 
         RequestResponse initialize_request_response(uint64_t addr, RequestResponse::RequestType request_type);
 };

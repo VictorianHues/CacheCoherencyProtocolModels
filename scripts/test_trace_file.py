@@ -7,16 +7,14 @@ from trace_lib import Trace  # Ensure this matches your import
 def generate_multi_cpu_tracefile(filename, num_procs, num_entries):
     trace = Trace(filename, num_procs)
 
-    # Simulate multi-core memory operations
     for i in range(num_entries):
         cpu_id = i % num_procs  # Assign requests round-robin
-        #addr = random.randint(0x1000, 0xFFFF) & ~0x3
-        addr = 0x1000
-        #trace.read(addr) 
-        if random.random() < 0.95:
-            trace.read(addr)  
+        addr = random.randint(0x1000, 0xFFFF) & ~0x3  # Random memory address
+
+        if random.random() < 0.5:
+            trace.read(addr)  # 50% chance of read
         else:
-            trace.write(addr)
+            trace.write(addr)  # 50% chance of write
 
     trace.close()
     print(f"Generated tracefile: {filename} with {num_procs} CPUs and {num_entries} entries")
@@ -25,30 +23,9 @@ def generate_manual_tracefile(filename):
     trace = Trace(filename, 1)
 
     # Simulate memory operations
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.write(0x100)
-    trace.write(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.read(0x100)
-    trace.write(0x100)
+    for i in range(num_entries):
+        cpu_id = i % num_procs  # Assign requests round-robin
+        trace.read(0x100)
 
     trace.close()
 

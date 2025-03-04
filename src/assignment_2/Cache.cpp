@@ -71,17 +71,9 @@ RequestResponse Cache::initialize_request_response(uint64_t addr, RequestRespons
 
     decode_address(addr, set_index, tag, byte_in_line);
 
-    //log(name(), "SET INDEX", set_index, "TAG", tag, "BYTE IN LINE", byte_in_line);
-
     cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
 
-    bool cache_line_valid = false;
-    if (cache_hit) {
-        cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
-    }
-
-    //log(name(), "CACHE line VALID", cache_line_valid);
-    //log(name(), "CACHE HIT bool", cache_hit, "CACHE HIT INDEX", cache_hit_index);
+    bool cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
 
     return {cache_id, addr, tag, set_index, byte_in_line, cache_hit, cache_hit_index, cache_line_valid, request_type};
 }
@@ -89,22 +81,10 @@ RequestResponse Cache::initialize_request_response(uint64_t addr, RequestRespons
 int Cache::cpu_read(uint64_t addr) {
     log(name(), "CPU READ on Cache", id);
     RequestResponse req = initialize_request_response(addr, RequestResponse::READ);
-    log(name(), "READ REQUEST on tag", req.tag, "in set", req.set_index, "type", RequestResponse::READ);
 
-    if (pending_writes_queue[req.addr].size() > 0) {
-        pending_reads_queue[req.addr].back().push_back(req);
-    }  else {
-        if (pending_reads_queue[req.addr].empty()) {
-            pending_reads_queue[req.addr].emplace_back();
-            requestQueue.push_back(req);
-        }
-        pending_reads_queue[req.addr].back().push_back(req);
-    }               
+    requestQueue.push_back(req);
 
-    log(name(), "READ pending queue of size", pending_reads_queue[req.addr].back().size());
-    log(name(), "READ vectors of pending queues of size", pending_reads_queue[req.addr].size());
-    log(name(), "WRITE pending queue of size", pending_writes_queue[req.addr].size());
-
+    log(name(), "READ REQUEST on tag", req.tag, "in set", req.set_index, "type", req.request_type);
 
     return 0;
 }
@@ -112,70 +92,73 @@ int Cache::cpu_read(uint64_t addr) {
 int Cache::cpu_write(uint64_t addr) {
     log(name(), "CPU WRITE on Cache", id);
     RequestResponse req = initialize_request_response(addr, RequestResponse::WRITE);
-    log(name(), "WRITE REQUEST on tag", req.tag, "in set", req.set_index, "type", RequestResponse::WRITE);
 
-    if (!pending_reads_queue[req.addr].empty()) {
-        pending_reads_queue[req.addr].emplace_back();
-        pending_writes_queue[req.addr].push_back(req);
-    } else {
-        requestQueue.push_back(req);
-    }
+    requestQueue.push_back(req);
 
-    log(name(), "READ pending queue of size", pending_reads_queue[req.addr].back().size());
-    log(name(), "READ vectors of pending queues of size", pending_reads_queue[req.addr].size());
-    log(name(), "WRITE pending queue of size", pending_writes_queue[req.addr].size());
+    log(name(), "WRITE REQUEST on tag", req.tag, "in set", req.set_index, "type", req.request_type);
 
     return 0;
+}
+
+void Cache::wait_for_bus_response() {
+   sc_time start_time = sc_time_stamp();
+
+    do {
+        wait(clk.posedge_event());
+        log(name(), "waiting for response...");
+    } while (!response_event.triggered());
+    sc_time end_time = sc_time_stamp();
+    sc_time wait_time = end_time - start_time;
+
+    time_idle += wait_time;
 }
 
 void Cache::processRequestQueue() {
     while(true) {
         if (!requestQueue.empty()) {
+            log(name(), "PROCESSING REQUEST QUEUE on Cache", id);
             RequestResponse req = requestQueue.front();
             requestQueue.pop_front();
 
-            req = initialize_request_response(req.addr, req.request_type);
-
             //uint64_t data = 128; // Placeholder data
 
-            if (req.request_type == RequestResponse::READ) {
-                if (req.cache_hit && req.line_valid) {
-                    log(name(), "READ HIT on address on tag", req.tag, "in set", req.set_index);
-
-                    responseQueue.push_back(req);
-                } else {
-                    log(name(), "READ MISS or INVALID on tag", req.tag, "in set", req.set_index);
-
-                    if (pending_reads_queue.find(req.addr) == pending_reads_queue.end()) {
-                        log(name(), "No READS pending, sending READ to MAIN MEMORY");
-                        pending_reads_queue[req.addr] = {};  // Create queue entry for this address
-                        bus->read(req);  // Fetch from main memory
-                    }
-
-                    pending_reads_queue[req.addr].back().push_back(req);
-                }           
-            } else if (req.request_type == RequestResponse::WRITE) {
-                if (req.cache_hit) {
-                    log(name(), "WRITE HIT on tag", req.tag, "in set", req.set_index);
-
-                    bus->write_invalidate(req);
-
-                    responseQueue.push_back(req);
-                } else {
-                    log(name(), "WRITE MISS requiring WRITE ALLOCATE on tag", req.tag, "in set", req.set_index);
-
-                    if (pending_reads_queue.find(req.addr) == pending_reads_queue.end()) {
-                        pending_writes_queue[req.addr].push_back(req);
-                        bus->read(req);  // Read data from memory first (write-allocate)
+            switch (req.request_type) {
+                case RequestResponse::READ:
+                    if (req.cache_hit && req.line_valid) {
+                        log(name(), "READ HIT on address on tag", req.tag, "in set", req.set_index);
+                        responseQueue.push_back(req);
+                        stats_readhit(id);
                     } else {
-                        pending_writes_queue[req.addr].push_back(req);
+                        log(name(), "READ MISS or INVALID on tag", req.tag, "in set", req.set_index);
+                        
+                        wait_for_bus_response();
+
+                        bus->read(req);
+                        stats_readmiss(id);
                     }
-                }
-                
-                
-            } else if (req.request_type == RequestResponse::INVALIDATE_SELF) {
-                log(name(), "INVALIDATING SELF on tag", req.tag, "in set", req.set_index);
-                cache[req.set_index].lines[req.cache_hit_index].valid = false;
+                    break;
+                case RequestResponse::WRITE:
+                    if (req.cache_hit) {
+                        log(name(), "WRITE HIT on tag", req.tag, "in set", req.set_index);
+                        responseQueue.push_back(req);
+                        stats_writehit(id);
+                    } else {
+                        log(name(), "WRITE MISS on tag", req.tag, "in set", req.set_index);
+                        log(name(), "WRITE ALLOCATE on tag", req.tag, "in set", req.set_index);
+
+                        wait_for_bus_response();
+
+                        bus->read(req);
+
+                        stats_writemiss(id);
+                    }
+                    break;
+                case RequestResponse::WRITE_INVALIDATE:
+                    break;
+                case RequestResponse::INVALIDATE_SELF:
+                    log(name(), "INVALIDATING SELF on tag", req.tag, "in set", req.set_index);
+                    cache[req.set_index].lines[req.cache_hit_index].valid = false;
+                    break;
             }
         }
         wait();
@@ -188,40 +171,45 @@ void Cache::processResponseQueue() {
             RequestResponse res = responseQueue.front();
             responseQueue.pop_front();
 
-            res = initialize_request_response(res.addr, res.request_type);
-
             uint64_t data = 128; // Placeholder data
 
-            if(res.request_type == RequestResponse::READ) {
-                log(name(), "READ RESPONSE on tag", res.tag, "in set", res.set_index);
+            switch (res.request_type) {
+                case RequestResponse::READ:
+                    log(name(), "READ RESPONSE on tag", res.tag, "in set", res.set_index);
 
-                for (RequestResponse req : pending_reads_queue[res.addr].front()) {
-                    log(name(), "PENDING READS Processing for tag", req.tag, "in set", req.set_index);
-                    stats_readhit(id);
-                }
+                    if (!res.cache_hit || !res.line_valid) {
+                        res.cache_hit_index = find_lru(cache[res.set_index]);
+                        log(name(), "EVICTION and reWRITE of LRU line", res.cache_hit_index, "in set", res.set_index);
+                        set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
+                    } else {
+                        log(name(), "line valid for READ on tag", res.tag, "in set", res.set_index);
+                    }
+                    break;
+                case RequestResponse::WRITE:
+                    log(name(), "WRITE RESPONSE on tag", res.tag, "in set", res.set_index);
 
-                pending_reads_queue[res.addr].pop_front();
-                
-                if (!pending_writes_queue[res.addr].empty()) {
-                    log(name(), "PENDING WRITE Processing for tag", res.tag, "in set", res.set_index);
-                    RequestResponse req = pending_writes_queue[res.addr].front();
-                    pending_writes_queue[res.addr].pop_front();
+                    if (!res.cache_hit || !res.line_valid) {
+                        res.cache_hit_index = find_lru(cache[res.set_index]);
+                        log(name(), "EVICTION of LRU line", res.cache_hit_index, "in set", res.set_index);
+                    }
 
-                    requestQueue.push_back(req);
-                }
+                    log(name(), "WRITE on tag", res.tag, "in set", res.set_index);
+                    set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, false);
 
-            } else if (res.request_type == RequestResponse::WRITE) {
-                log(name(), "WRITE RESPONSE on tag", res.tag, "in set", res.set_index);
-                set_cache_line(res.set_index, res.cache_hit_index, res.tag, data, res.byte_in_line, true, true);
-                
+                    wait_for_bus_response();
+                    bus->write_invalidate(res);  // Invalidate other caches
 
-                
+                    break;
+                case RequestResponse::WRITE_INVALIDATE:
+                    break;
+                case RequestResponse::INVALIDATE_SELF:
+                    break;
             }
-        
         }
         wait();
     }
 }
+
 
 bool Cache::snoop(RequestResponse req_res, int bus_action) {
     

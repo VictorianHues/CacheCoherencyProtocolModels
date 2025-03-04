@@ -4,6 +4,7 @@
 #include <systemc.h>
 #include <vector>
 #include <queue>
+#include <random>
 
 #include "bus_slave_if.h"
 #include "Cache.h"
@@ -66,17 +67,27 @@ class Bus : public bus_slave_if, public sc_module {
         }
     
     private:
+        sc_mutex bus_mutex;
+        bool bus_busy = false;
+        sc_event bus_released;
+
         void processRequestQueue() {
             while(true) {
                 if (!requestQueue.empty()) {
                     std::pair<RequestResponse, int> req_with_bus_action = requestQueue.front();
-
                     requestQueue.pop();
 
                     RequestResponse req = req_with_bus_action.first;
                     int bus_action = req_with_bus_action.second;
-                    uint64_t data = 128; // Placeholder data
+                    
+                    log(name(), "processing request queue for Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
 
+                    bus_mutex.lock();
+                    bus_busy = true;  // Mark bus as busy
+
+                    log(name(), "BUS ACQUIRED by Cache", req.cache_id);
+
+                    uint64_t data = 128; // Placeholder data
                     bool snoop_hit = false;
 
                     log(name(), "processing request from Cache", req.cache_id, "for tag", req.tag, "in set", req.set_index);
@@ -111,7 +122,14 @@ class Bus : public bus_slave_if, public sc_module {
                             }
                             break;
                     }
+                    log(name(), "BUS RELEASED by Cache", req.cache_id);
+                    bus_busy = false;
+                    bus_mutex.unlock();
+                
                 }
+                int random_index = std::rand() % cache_list.size();
+                log(name(), "NOTIFYING Cache", cache_list[random_index]->id);
+                cache_list[random_index]->response_event.notify();
                 wait();
             }
         }

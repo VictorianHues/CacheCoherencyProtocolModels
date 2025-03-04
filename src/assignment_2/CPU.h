@@ -7,7 +7,6 @@
 #include "cpu_cache_if.h"
 #include "helpers.h"
 #include "psa.h"
-#include "request_response_struct.h"
 
 class CPU : public sc_module {
     public:
