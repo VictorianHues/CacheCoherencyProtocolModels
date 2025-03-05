@@ -3,32 +3,28 @@
 
 #include <iostream>
 #include <systemc.h>
-#include <unordered_map>
 #include <deque>
 
-#include "Memory.h"
-#include "cpu_cache_if.h"
+#include "cache_if.h"
+#include "bus_if.h"
+
 #include "helpers.h"
 #include "cache_struct.h"
 #include "constants.h"
-#include "request_response_struct.h"
 
-class Cache : public cpu_cache_if, public sc_module {
+class Cache : public cache_if, public sc_module {
     public:
-        int id;
-        sc_event response_event;
-
-        bool new_write_pending = false;
-
-        std::deque<RequestResponse> requestQueue;
-        std::deque<RequestResponse> responseQueue;
+        enum RequestType { READ, WRITE };
+        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE };
 
         sc_in<bool> clk;
-        sc_port<bus_slave_if> bus;
+        sc_port<bus_if> bus;
 
-        int cpu_read(uint64_t addr);
-        int cpu_write(uint64_t addr);
+        uint64_t id;
 
+        std::deque<std::pair<uint64_t, RequestType>> requestQueue;
+        std::deque<std::pair<uint64_t, ResponseType>> responseQueue;
+        
 
         SC_CTOR(Cache) {
             log(name(), "constructed with id", id);
@@ -43,27 +39,33 @@ class Cache : public cpu_cache_if, public sc_module {
             //dont_initialize();
         }
         
+        /* Interface Start */
+        void cpu_read(uint64_t addr);
+        void cpu_write(uint64_t addr);
 
-        void notify_response(RequestResponse res);
-        bool snoop(RequestResponse req_res, int bus_action);
+        void snoop_read_response_cache(uint64_t addr, uint64_t data);
+        void snoop_read_response_mem(uint64_t addr, uint64_t data);
 
+        void read_for_write_allocate_response(uint64_t addr, uint64_t data);
 
-        int system_busy() {
-            return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
-        }
+        bool snoop_read(uint64_t requester_id, uint64_t addr);
+        void snoop_invalidate(uint64_t requester_id, uint64_t addr);
+        /* Interface End */
+
+        bool system_busy();
     private:
         CacheSet cache[NUM_SETS];
 
+        /* Helper Functions */
         void cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag);
         void update_lru(CacheSet &set, size_t index);
         size_t find_lru(CacheSet &set);
-        void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line);
+        void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line, uint64_t &data);
         void set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, uint64_t data, uint64_t byte_in_line, bool valid, bool dirty);
 
+        /* Processing Threads */
         void processRequestQueue();
         void processResponseQueue();
-
-        RequestResponse initialize_request_response(uint64_t addr, RequestResponse::RequestType request_type);
 };
 
 #endif

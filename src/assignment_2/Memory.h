@@ -3,23 +3,29 @@
 
 #include <iostream>
 #include <systemc.h>
-#include <queue>
+#include <deque>
 
-#include "bus_slave_if.h"
+#include "memory_if.h"
 #include "helpers.h"
 #include "constants.h"
 #include "psa.h"
 #include "Cache.h"
-#include "request_response_struct.h"
 
 
 
-class Memory : public bus_slave_if, public sc_module {
+class Memory : public memory_if, public sc_module {
     public:
-        sc_in_clk clk;
-        sc_port<bus_slave_if> bus;
+        struct RequestType {
+            static const uint64_t SNOOP_READ_RESPONSE = 0;
+            static const uint64_t WRITE = 1;
+            static const uint64_t READ_WRITE_ALLOCATE = 2;
+        };
 
-        std::queue<std::pair<RequestResponse, int>> requestQueue;
+        sc_in_clk clk;
+        sc_port<bus_if> bus;
+
+        std::deque<std::vector<uint64_t>> requestQueue;
+        std::deque<std::vector<uint64_t>> responseQueue;
 
         SC_CTOR(Memory) : read_count(0), write_count(0) {
             SC_THREAD(processRequestQueue);
@@ -34,24 +40,26 @@ class Memory : public bus_slave_if, public sc_module {
             return !requestQueue.empty();
         }
 
-        int read(RequestResponse req) {
-            log(name(), "READ from MAIN MEMORY requested");
-            std::pair<RequestResponse, int> req_with_mem_action = {req, 0};
-            requestQueue.push(req_with_mem_action);
-            read_count++;
-            return 0;
+        void read_failed_snoop(uint64_t requester_id, uint64_t addr) {
+            log(name(), "READ from MAIN MEMORY after failed SNOOP");
+
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::SNOOP_READ_RESPONSE};
+            requestQueue.push_back(req);
         }
 
-        int write(RequestResponse req, uint64_t data) {
+        void read_write_allocate(uint64_t requester_id, uint64_t addr) {
+            log(name(), "READ from MAIN MEMORY for WRITE ALLOCATE");
+
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::READ_WRITE_ALLOCATE};
+            requestQueue.push_back(req);
+        }
+
+        void write(uint64_t requester_id, uint64_t addr, uint64_t data) {
             log(name(), "WRITE to MAIN MEMORY requested");
-            std::pair<RequestResponse, int> req_with_mem_action = {req, 1};
-            requestQueue.push(req_with_mem_action);
-            write_count++;
-            return 0;
-        }
 
-        int write_invalidate(RequestResponse req_res) {
-            return 0;
+            // No Literal Data is processed here, but it is passed in the request
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE};
+            requestQueue.push_back(req);
         }
 
         int get_read_count() const {
@@ -62,14 +70,6 @@ class Memory : public bus_slave_if, public sc_module {
             return write_count;
         }
 
-        void notify_response(RequestResponse req) {
-            log(name(), "received response from BUS");
-        }
-
-        void snoop_read_success(RequestResponse res, uint64_t data) {
-            log(name(), "Separate Cache-Bus-Memory interface coupling into two please");
-        }
-
     private:
         int read_count;
         int write_count;
@@ -78,23 +78,37 @@ class Memory : public bus_slave_if, public sc_module {
 
             while (true) {
                 if (!requestQueue.empty()) {
-                    std::pair<RequestResponse, int> req_with_mem_action = requestQueue.front();
-                    requestQueue.pop();
+                    std::vector<uint64_t> req = requestQueue.front();
+                    requestQueue.pop_front();
 
-                    RequestResponse req = req_with_mem_action.first;
-                    int action = req_with_mem_action.second;
-
+                    uint64_t requester_id = req[0];
+                    uint64_t addr = req[1];
+                    uint64_t req_type = req[2];
+                    uint64_t data = 128; // Placeholder data
 
                     wait(MEM_LATENCY);
 
-                    if (action == 0) { 
-                        log(name(), "READ from Main Memory COMPLETE", req.tag, "in set", req.set_index);
-                        bus->notify_response(req);
+                    switch (req_type) {
+                        case RequestType::SNOOP_READ_RESPONSE:
+                            log(name(), "PROCESSING READ after FAILED SNOOP from Cache", requester_id, "for address", addr);
+                            
+                            bus->mem_read_failed_snoop_complete(requester_id, addr, data);
 
-                    } else if (action == 1) { 
-                        log(name(), "WRITE to Main Memory COMPLETE for tag", req.tag, "in set", req.set_index);
-                        //bus->notify_response(req);
-                    } 
+                            read_count++;
+                            break;
+                        case RequestType::WRITE:
+                            log(name(), "PROCESSING WRITE from Cache", requester_id, "for address", addr);
+                            
+                            write_count++;
+                            break;
+                        case RequestType::READ_WRITE_ALLOCATE:
+                            log(name(), "PROCESSING READ for WRITE ALLOCATE from Cache", requester_id, "for address", addr);
+                            
+                            bus->mem_read_write_allocate_complete(requester_id, addr, data);
+                            
+                            read_count++;
+                            break;
+                    }
                 }
                 wait();
             }

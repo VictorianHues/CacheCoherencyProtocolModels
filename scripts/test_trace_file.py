@@ -80,7 +80,7 @@ def generate_50_50_reads_writes_same_address(filename, num_procs, num_entries):
     for i in range(num_entries):
         cpu_id = i % num_procs  # Assign requests round-robin
 
-        if num_entries % 2 == 0:
+        if (i // num_procs) % 2 == 0:
             trace.read(0x1000)
         else:
             trace.write(0x1000)
@@ -98,9 +98,9 @@ if __name__ == "__main__":
     num_procs = int(sys.argv[2])
     num_entries = int(sys.argv[3])
 
-    generate_multi_cpu_tracefile(filename, num_procs, num_entries)
+    #generate_multi_cpu_tracefile(filename, num_procs, num_entries)
     #generate_manual_tracefile(filename)
-    #generate_50_50_reads_writes_same_address(filename, num_procs, num_entries)
+    generate_50_50_reads_writes_same_address(filename, num_procs, num_entries)
     #generate_all_reads_same_address(filename, num_procs, num_entries)
     #generate_all_writes_same_address(filename, num_procs, num_entries)
     #generate_all_writes_random_address(filename, num_procs, num_entries)
