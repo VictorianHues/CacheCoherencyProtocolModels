@@ -1,14 +1,10 @@
-/*
-// File: top.cpp
-//
-*/
-
 #include <iostream>
 #include <systemc.h>
 
 #include "CPU.h"
 #include "Cache.h"
 #include "Bus.h"
+#include "Memory.h"
 #include "psa.h"
 
 using namespace std;
