@@ -14,8 +14,10 @@ class cache_if : public virtual sc_interface {
         /* Responses from other Modules */
         virtual void snoop_read_response_cache(uint64_t addr, uint64_t data) = 0;
         virtual void snoop_read_response_mem(uint64_t addr, uint64_t data) = 0;
+        virtual void snoop_invalidate_response(uint64_t addr) = 0;
 
         virtual void read_for_write_allocate_response(uint64_t addr, uint64_t data) = 0;
+        virtual void write_to_main_memory_complete(uint64_t addr) = 0;
 
         /* Snooping Functionality */
         virtual bool snoop_read(uint64_t requester_id, uint64_t addr) = 0;

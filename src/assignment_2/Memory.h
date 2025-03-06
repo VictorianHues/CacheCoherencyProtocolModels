@@ -98,6 +98,8 @@ class Memory : public memory_if, public sc_module {
                             break;
                         case RequestType::WRITE:
                             log(name(), "PROCESSING WRITE from Cache", requester_id, "for address", addr);
+
+                            bus->mem_write_to_main_memory_complete(requester_id, addr);
                             
                             write_count++;
                             break;

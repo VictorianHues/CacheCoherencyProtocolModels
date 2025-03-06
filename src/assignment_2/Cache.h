@@ -7,6 +7,7 @@
 
 #include "cache_if.h"
 #include "bus_if.h"
+#include "cpu_if.h"
 
 #include "helpers.h"
 #include "cache_struct.h"
@@ -15,10 +16,11 @@
 class Cache : public cache_if, public sc_module {
     public:
         enum RequestType { READ, WRITE };
-        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE };
+        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE, WRITE_TO_MAIN_MEM, INVALIDATE_RESPONSE };
 
         sc_in<bool> clk;
         sc_port<bus_if> bus;
+        sc_port<cpu_if> cpu;
 
         uint64_t id;
 
@@ -45,8 +47,10 @@ class Cache : public cache_if, public sc_module {
 
         void snoop_read_response_cache(uint64_t addr, uint64_t data);
         void snoop_read_response_mem(uint64_t addr, uint64_t data);
+        void snoop_invalidate_response(uint64_t addr);
 
         void read_for_write_allocate_response(uint64_t addr, uint64_t data);
+        void write_to_main_memory_complete(uint64_t addr);
 
         bool snoop_read(uint64_t requester_id, uint64_t addr);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
