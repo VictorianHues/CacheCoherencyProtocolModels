@@ -5,7 +5,7 @@
 
 class cpu_if : public virtual sc_interface {
     public:
-        virtual void read_response(uint64_t addr) = 0;
+        virtual void read_response(uint64_t addr, uint64_t data) = 0;
         virtual void write_response(uint64_t addr) = 0;
 };
 

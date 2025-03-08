@@ -97,6 +97,15 @@ void Cache::snoop_read_response_mem(uint64_t addr, uint64_t data) {
     responseQueue.push_front(res);
 }
 
+void Cache::snoop_invalidate_response(uint64_t addr) {
+    log(name(), "SNOOP INVALIDATE RESPONSE on address", addr);
+
+    wait(CACHE_CYCLE_LATENCY, SC_NS);
+
+    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::INVALIDATE_RESPONSE};
+    responseQueue.push_front(res);
+}
+
 void Cache::read_for_write_allocate_response(uint64_t addr, uint64_t data) {
     log(name(), "READ FOR WRITE ALLOCATE RESPONSE on address", addr);
 
@@ -104,6 +113,29 @@ void Cache::read_for_write_allocate_response(uint64_t addr, uint64_t data) {
 
     std::pair<uint64_t, ResponseType> res = {addr, ResponseType::READ_FOR_WRITE_ALLOCATE};
     responseQueue.push_front(res);
+}
+
+void Cache::write_to_main_memory_complete(uint64_t addr) {
+    log(name(), "WRITE TO MAIN MEMORY RESPONSE on address", addr);
+
+    wait(CACHE_CYCLE_LATENCY, SC_NS);
+
+    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::WRITE_TO_MAIN_MEM};
+    responseQueue.push_front(res);
+}
+
+
+void Cache::bus_arbitration_notification() {
+    bus_arbitration.notify();
+    //log(name(), "BUS ARBITRATION NOTIFICATION on CACHE", id);
+}
+
+void Cache::wait_for_bus_arbitration() {
+    while (!bus_arbitration.triggered()) {
+        wait(clk.posedge_event());
+        //log(name(), "waiting for Bus arbitration...");
+    }
+    bus_arbitration.cancel();
 }
 
 void Cache::processRequestQueue() {
@@ -140,11 +172,15 @@ void Cache::processRequestQueue() {
                 case RequestType::READ:
                     if (!cache_hit || !cache_line_valid) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
+
+                        wait_for_bus_arbitration();
                         bus->read(id, addr);
                     } else {
                         log(name(), "READ HIT on tag", tag, "in set", set_index);
                         log(name(), "Sending Data to CPU");
-                        // cpu->read_response(addr);
+
+                        cpu->read_response(addr, data); // READ HIT PROCESS ENDS HERE
+
                         stats_readhit(id);
                     } 
                     break;
@@ -152,6 +188,7 @@ void Cache::processRequestQueue() {
                     if (!cache_hit) {
                         log(name(), "WRITE MISS requires WRITE ALLOCATE READ on tag", tag, "in set", set_index);
                         
+                        wait_for_bus_arbitration();
                         bus->read_for_write_allocate(id, addr);
 
                         stats_writemiss(id);
@@ -161,6 +198,7 @@ void Cache::processRequestQueue() {
 
                         set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
 
+                        wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
 
                         stats_writehit(id);
@@ -216,10 +254,13 @@ void Cache::processResponseQueue() {
 
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     } 
                     // Dirty bit is true after snooping caches
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
+
+                    cpu->read_response(addr, data); // READ MISS TO CACHE SNOOP HIT PROCESS ENDS HERE
 
                     break;
                 case ResponseType::BUS_READ_RESPONSE_MEM: // Bus read response from Main Memory after Cache read miss
@@ -235,10 +276,13 @@ void Cache::processResponseQueue() {
                         
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
                         
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     }
                     // Dirty bit is false after reading from memory
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
+
+                    cpu->read_response(addr, data); // READ MISS TO MEMORY PROCESS ENDS HERE
 
                     break;
                 case ResponseType::READ_FOR_WRITE_ALLOCATE:
@@ -254,13 +298,25 @@ void Cache::processResponseQueue() {
 
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     } 
 
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
+                    wait_for_bus_arbitration();
                     bus->broadcast_invalidate(id, addr);
 
+                    break;
+                case ResponseType::WRITE_TO_MAIN_MEM:
+                    log(name(), "WRITE TO MAIN MEMORY RESPONSE queue on address", addr);
+
+                    cpu->write_response(addr); // WRITE TO MAIN MEMORY CAUSED BY DIRTY BIT PROCESS ENDS HERE
+                    break;
+                case ResponseType::INVALIDATE_RESPONSE:
+                    log(name(), "INVALIDATE RESPONSE queue on address", addr);
+
+                    cpu->write_response(addr); // WRITE RESPONSE PROCESS ENDS HERE
                     break;
             }
         }

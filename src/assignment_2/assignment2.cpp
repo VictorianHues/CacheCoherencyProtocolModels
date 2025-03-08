@@ -47,7 +47,9 @@ int sc_main(int argc, char *argv[]) {
             // Connect instances
             cpus[i]->cache(*caches[i]);
             caches[i]->bus(*bus);
-            cpus[i]->clck(clk);
+            caches[i]->cpu(*cpus[i]);
+
+            cpus[i]->clk(clk);
             caches[i]->clk(clk);
             
             bus->add_cache(caches[i]);      

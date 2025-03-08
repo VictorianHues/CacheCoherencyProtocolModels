@@ -24,6 +24,7 @@ class Bus : public bus_if, public sc_module {
             static const uint64_t SNOOP_READ_RESPONSE_MEM = 1;
             static const uint64_t SNOOP_READ_RESPONSE_CACHE = 2;
             static const uint64_t READ_WRITE_ALLOCATE_RESPONSE = 3;
+            static const uint64_t WRITE_TO_MAIN_MEM_RESPONSE = 4;
         };
 
         sc_in<bool> clk;
@@ -35,6 +36,9 @@ class Bus : public bus_if, public sc_module {
         std::deque<std::vector<uint64_t>> responseQueue;
     
         SC_CTOR(Bus) {
+            SC_THREAD(bus_arbitration_thread);
+            sensitive << clk.pos();
+
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
             //dont_initialize();
@@ -85,7 +89,7 @@ class Bus : public bus_if, public sc_module {
         /* RESPONSES FROM MODULES */
 
         void mem_read_write_allocate_complete(uint64_t requester_id, uint64_t addr, uint64_t data) {
-            log(name(), "READ WRITE ALLOCATE pushed to queue for Cache", requester_id, "address", addr);
+            log(name(), "READ WRITE ALLOCATE RESPONSE pushed to queue for Cache", requester_id, "address", addr);
 
             // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
             std::vector<uint64_t> res = {requester_id, addr, ResponseType::READ_WRITE_ALLOCATE_RESPONSE};
@@ -100,6 +104,13 @@ class Bus : public bus_if, public sc_module {
             responseQueue.push_back(res);
         }
 
+        void mem_write_to_main_memory_complete(uint64_t requester_id, uint64_t addr) {
+            log(name(), "WRITE to Main Memory RESPONSE pushed to queue for Cache", requester_id, "address", addr);
+
+            std::vector<uint64_t> res = {requester_id, addr, ResponseType::WRITE_TO_MAIN_MEM_RESPONSE};
+            responseQueue.push_back(res);
+        }
+
         void cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64_t data) {
             log(name(), "SNOOP READ RESPONSE pushed to queue for Cache", requester_id, "address", addr);
 
@@ -108,9 +119,17 @@ class Bus : public bus_if, public sc_module {
             responseQueue.push_back(res);
         }
 
-        
-
     private:
+        int last_served_cache_id = 0;
+
+        void bus_arbitration_thread() {
+            while (true) {
+                last_served_cache_id = (last_served_cache_id + 1) % cache_list.size();
+                cache_list[last_served_cache_id]->bus_arbitration_notification();
+                wait();
+            }
+        }
+
         void processRequestQueue() {
             while(true) {
                 if (!requestQueue.empty()) {
@@ -161,6 +180,11 @@ class Bus : public bus_if, public sc_module {
                                     cache->snoop_invalidate(cache->id, req_addr);
                                 }
                             }
+                            for (Cache* cache : cache_list) {
+                                if (cache->id == req_cache_id) {
+                                    cache->snoop_invalidate_response(req_addr);
+                                }
+                            }
                             break;
                         case RequestType::READ_WRITE_ALLOCATE: // Read for Write Allocate
                         log(name(), "READ WRITE ALLOCATE from Cache", req_cache_id, "address", req_addr);
@@ -196,6 +220,9 @@ class Bus : public bus_if, public sc_module {
                                     break;
                                 case ResponseType::READ_WRITE_ALLOCATE_RESPONSE:
                                     cache->read_for_write_allocate_response(res_addr, data);
+                                    break;
+                                case ResponseType::WRITE_TO_MAIN_MEM_RESPONSE:
+                                    cache->write_to_main_memory_complete(res_addr);
                                     break;
                             }
                         }
