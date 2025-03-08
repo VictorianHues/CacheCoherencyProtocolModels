@@ -36,6 +36,9 @@ class Bus : public bus_if, public sc_module {
         std::deque<std::vector<uint64_t>> responseQueue;
     
         SC_CTOR(Bus) {
+            SC_THREAD(bus_arbitration_thread);
+            sensitive << clk.pos();
+
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
             //dont_initialize();
@@ -116,9 +119,17 @@ class Bus : public bus_if, public sc_module {
             responseQueue.push_back(res);
         }
 
-        
-
     private:
+        int last_served_cache_id = 0;
+
+        void bus_arbitration_thread() {
+            while (true) {
+                last_served_cache_id = (last_served_cache_id + 1) % cache_list.size();
+                cache_list[last_served_cache_id]->bus_arbitration_notification();
+                wait();
+            }
+        }
+
         void processRequestQueue() {
             while(true) {
                 if (!requestQueue.empty()) {

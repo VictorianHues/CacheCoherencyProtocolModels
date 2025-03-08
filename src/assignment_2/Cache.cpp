@@ -124,6 +124,20 @@ void Cache::write_to_main_memory_complete(uint64_t addr) {
     responseQueue.push_front(res);
 }
 
+
+void Cache::bus_arbitration_notification() {
+    bus_arbitration.notify();
+    //log(name(), "BUS ARBITRATION NOTIFICATION on CACHE", id);
+}
+
+void Cache::wait_for_bus_arbitration() {
+    while (!bus_arbitration.triggered()) {
+        wait(clk.posedge_event());
+        //log(name(), "waiting for Bus arbitration...");
+    }
+    bus_arbitration.cancel();
+}
+
 void Cache::processRequestQueue() {
     while(true) {
         if (!requestQueue.empty()) {
@@ -158,6 +172,8 @@ void Cache::processRequestQueue() {
                 case RequestType::READ:
                     if (!cache_hit || !cache_line_valid) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
+
+                        wait_for_bus_arbitration();
                         bus->read(id, addr);
                     } else {
                         log(name(), "READ HIT on tag", tag, "in set", set_index);
@@ -172,6 +188,7 @@ void Cache::processRequestQueue() {
                     if (!cache_hit) {
                         log(name(), "WRITE MISS requires WRITE ALLOCATE READ on tag", tag, "in set", set_index);
                         
+                        wait_for_bus_arbitration();
                         bus->read_for_write_allocate(id, addr);
 
                         stats_writemiss(id);
@@ -181,6 +198,7 @@ void Cache::processRequestQueue() {
 
                         set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
 
+                        wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
 
                         stats_writehit(id);
@@ -236,6 +254,7 @@ void Cache::processResponseQueue() {
 
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     } 
                     // Dirty bit is true after snooping caches
@@ -257,6 +276,7 @@ void Cache::processResponseQueue() {
                         
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
                         
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     }
                     // Dirty bit is false after reading from memory
@@ -278,11 +298,13 @@ void Cache::processResponseQueue() {
 
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
+                        wait_for_bus_arbitration();
                         bus->write_to_main_memory(id, addr, data);
                     } 
 
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
+                    wait_for_bus_arbitration();
                     bus->broadcast_invalidate(id, addr);
 
                     break;

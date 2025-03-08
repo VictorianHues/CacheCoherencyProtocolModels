@@ -48,6 +48,7 @@ int sc_main(int argc, char *argv[]) {
             cpus[i]->cache(*caches[i]);
             caches[i]->bus(*bus);
             caches[i]->cpu(*cpus[i]);
+
             cpus[i]->clk(clk);
             caches[i]->clk(clk);
             

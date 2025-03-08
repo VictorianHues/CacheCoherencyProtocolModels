@@ -22,6 +22,8 @@ class Cache : public cache_if, public sc_module {
         sc_port<bus_if> bus;
         sc_port<cpu_if> cpu;
 
+        sc_event bus_arbitration;
+
         uint64_t id;
 
         std::deque<std::pair<uint64_t, RequestType>> requestQueue;
@@ -54,6 +56,9 @@ class Cache : public cache_if, public sc_module {
 
         bool snoop_read(uint64_t requester_id, uint64_t addr);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
+
+        void bus_arbitration_notification();
+        void wait_for_bus_arbitration();
         /* Interface End */
 
         bool system_busy();

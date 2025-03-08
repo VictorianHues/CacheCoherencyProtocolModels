@@ -40,7 +40,7 @@ class CPU : public cpu_if, public sc_module {
                 wait(clk.posedge_event());
                 //log(name(), "waiting for response...");
             }
-            wait(clk.posedge_event());
+            response_event.cancel();
         }
 
     private:
@@ -57,22 +57,23 @@ class CPU : public cpu_if, public sc_module {
                 }
 
                 switch (tr_data.type) {
-                case TraceFile::ENTRY_TYPE_READ:
-                    log(name(), "reading from address", tr_data.addr);
-                    cache->cpu_read(tr_data.addr);
-                    wait_for_cache();
-                    break;
-                case TraceFile::ENTRY_TYPE_WRITE:
-                    log(name(), "writing to address", tr_data.addr);
-                    cache->cpu_write(tr_data.addr);
-                    wait_for_cache();
-                    break;
-                case TraceFile::ENTRY_TYPE_NOP:
-                    log(name(), "NOP");
-                    break;
-                default:
-                    cerr << "ERROR, got invalid data from Trace" << endl;
-                    exit(0);
+                    case TraceFile::ENTRY_TYPE_READ:
+                        log(name(), "reading from address", tr_data.addr);
+                        cache->cpu_read(tr_data.addr);
+                        wait_for_cache();
+                        break;
+                    case TraceFile::ENTRY_TYPE_WRITE:
+                        log(name(), "writing to address", tr_data.addr);
+                        cache->cpu_write(tr_data.addr);
+                        wait_for_cache();
+                        break;
+                    case TraceFile::ENTRY_TYPE_NOP:
+                        log(name(), "NOP");
+                        wait_for_cache();
+                        break;
+                    default:
+                        cerr << "ERROR, got invalid data from Trace" << endl;
+                        exit(0);
                 }
                 wait();
             }
