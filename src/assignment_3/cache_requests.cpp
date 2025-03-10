@@ -2,7 +2,7 @@
 #include <systemc.h>
 #include <unordered_map>
 
-#include "cache.h"
+#include "CACHE.h"
 #include "psa.h"
 
 void Cache::cpu_read(uint64_t addr) {
@@ -10,7 +10,7 @@ void Cache::cpu_read(uint64_t addr) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, RequestType> req = {addr, RequestType::READ};
+    std::vector<uint64_t> req = {addr, RequestType::READ};
     requestQueue.push_back(req);
 }
 
@@ -19,18 +19,18 @@ void Cache::cpu_write(uint64_t addr) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, RequestType> req = {addr, RequestType::WRITE};
+    std::vector<uint64_t> req = {addr, RequestType::WRITE};
     requestQueue.push_back(req);
 }
 
 void Cache::processRequestQueue() {
     while(true) {
         if (!requestQueue.empty()) {
-            std::pair<uint64_t, RequestType> request = requestQueue.front();
+            std::vector<uint64_t> request = requestQueue.front();
             requestQueue.pop_front();
 
-            uint64_t addr = request.first;
-            RequestType req_type = request.second;
+            uint64_t addr = request[0];
+            uint64_t req_type = request[1];
 
             log(name(), "PROCESSING REQUEST QUEUE on Cache", id, "for address", addr);
 
@@ -57,7 +57,7 @@ void Cache::processRequestQueue() {
                 case RequestType::READ:
                     if (!cache_hit || !cache_line_valid) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
-
+                        
                         wait_for_bus_arbitration();
                         bus->read(id, addr);
                     } else {

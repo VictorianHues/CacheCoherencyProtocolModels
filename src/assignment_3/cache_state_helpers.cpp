@@ -2,7 +2,7 @@
 #include <systemc.h>
 #include <unordered_map>
 
-#include "cache.h"
+#include "CACHE.h"
 #include "psa.h"
 
 

@@ -5,8 +5,14 @@
 
 struct CacheLine {
     uint64_t tag = -1;
+
     bool valid = false;
     bool dirty = false;
+    bool exclusive = false;
+    bool shared = false;
+    bool owned = false;
+    bool modified = false;
+
     uint64_t data[LINE_SIZE / sizeof(uint64_t)] = {0};
 };
 

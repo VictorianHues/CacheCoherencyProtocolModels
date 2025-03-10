@@ -2,7 +2,7 @@
 #include <systemc.h>
 #include <unordered_map>
 
-#include "cache.h"
+#include "CACHE.h"
 #include "psa.h"
 
 void Cache::read_for_write_allocate_response(uint64_t addr, uint64_t data) {
@@ -10,7 +10,7 @@ void Cache::read_for_write_allocate_response(uint64_t addr, uint64_t data) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::READ_FOR_WRITE_ALLOCATE};
+    std::vector<uint64_t> res = {addr, ResponseType::READ_FOR_WRITE_ALLOCATE};
     responseQueue.push_front(res);
 }
 
@@ -19,18 +19,18 @@ void Cache::write_to_main_memory_complete(uint64_t addr) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::WRITE_TO_MAIN_MEM};
+    std::vector<uint64_t> res = {addr, ResponseType::WRITE_TO_MAIN_MEM};
     responseQueue.push_front(res);
 }
 
 void Cache::processResponseQueue() {
     while(true) {
         if (!responseQueue.empty()) {
-            std::pair<uint64_t, ResponseType> response = responseQueue.front();
+            std::vector<uint64_t> response = responseQueue.front();
             responseQueue.pop_front();
 
-            uint64_t addr = response.first;
-            ResponseType res_type = response.second;
+            uint64_t addr = response[0];
+            uint64_t res_type = response[1];
 
             log(name(), "PROCESSING RESPONSE QUEUE on Cache", id, "for address", addr);
 

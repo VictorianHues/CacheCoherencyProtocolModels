@@ -2,7 +2,7 @@
 #include <systemc.h>
 #include <unordered_map>
 
-#include "cache.h"
+#include "CACHE.h"
 #include "psa.h"
 
 void Cache::snoop_read_response_cache(uint64_t addr, uint64_t data) {
@@ -10,7 +10,7 @@ void Cache::snoop_read_response_cache(uint64_t addr, uint64_t data) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::BUS_READ_RESPONSE_CACHE};
+    std::vector<uint64_t> res = {addr, ResponseType::BUS_READ_RESPONSE_CACHE};
     responseQueue.push_front(res);
 }
 
@@ -19,7 +19,7 @@ void Cache::snoop_read_response_mem(uint64_t addr, uint64_t data) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::BUS_READ_RESPONSE_MEM};
+    std::vector<uint64_t> res = {addr, ResponseType::BUS_READ_RESPONSE_MEM};
     responseQueue.push_front(res);
 }
 
@@ -28,7 +28,7 @@ void Cache::snoop_invalidate_response(uint64_t addr) {
 
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
-    std::pair<uint64_t, ResponseType> res = {addr, ResponseType::INVALIDATE_RESPONSE};
+    std::vector<uint64_t> res = {addr, ResponseType::INVALIDATE_RESPONSE};
     responseQueue.push_front(res);
 }
 

@@ -15,8 +15,17 @@
 
 class Cache : public cache_if, public sc_module {
     public:
-        enum RequestType { READ, WRITE };
-        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE, WRITE_TO_MAIN_MEM, INVALIDATE_RESPONSE };
+        struct RequestType {
+            static const uint64_t READ = 0;
+            static const uint64_t WRITE = 1;
+        };
+        struct ResponseType {
+            static const uint64_t BUS_READ_RESPONSE_CACHE = 0;
+            static const uint64_t BUS_READ_RESPONSE_MEM = 1;
+            static const uint64_t READ_FOR_WRITE_ALLOCATE = 2;
+            static const uint64_t WRITE_TO_MAIN_MEM = 3;
+            static const uint64_t INVALIDATE_RESPONSE = 4;
+        };
 
         sc_in<bool> clk;
         sc_port<bus_if> bus;
@@ -26,8 +35,8 @@ class Cache : public cache_if, public sc_module {
 
         uint64_t id;
 
-        std::deque<std::pair<uint64_t, RequestType>> requestQueue;
-        std::deque<std::pair<uint64_t, ResponseType>> responseQueue;
+        std::deque<std::vector<uint64_t>> requestQueue;
+        std::deque<std::vector<uint64_t>> responseQueue;
 
         SC_CTOR(Cache) {
             log(name(), "constructed with id", id);
@@ -62,8 +71,10 @@ class Cache : public cache_if, public sc_module {
         }
         
         void wait_for_bus_arbitration() {
+            bus->cache_notify_bus_arbitration(id);
+            
             while (!bus_arbitration.triggered()) {
-                wait(clk.posedge_event());
+                wait(clk.negedge_event());
                 //log(name(), "waiting for Bus arbitration...");
             }
             bus_arbitration.cancel();

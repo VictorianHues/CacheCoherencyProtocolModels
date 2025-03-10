@@ -2,9 +2,9 @@
 #include <systemc.h>
 
 #include "CPU.h"
-#include "cache.h"
-#include "Bus.h"
-#include "Memory.h"
+#include "CACHE.h"
+#include "BUS.h"
+#include "MEMORY.h"
 #include "psa.h"
 
 using namespace std;

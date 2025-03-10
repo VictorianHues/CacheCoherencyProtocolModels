@@ -9,9 +9,7 @@
 #include "helpers.h"
 #include "constants.h"
 #include "psa.h"
-#include "cache.h"
-
-
+#include "CACHE.h"
 
 class Memory : public memory_if, public sc_module {
     public:
@@ -23,6 +21,8 @@ class Memory : public memory_if, public sc_module {
 
         sc_in_clk clk;
         sc_port<bus_if> bus;
+
+        sc_event bus_arbitration;
 
         std::deque<std::vector<uint64_t>> requestQueue;
         std::deque<std::vector<uint64_t>> responseQueue;
@@ -70,6 +70,21 @@ class Memory : public memory_if, public sc_module {
             return write_count;
         }
 
+        void bus_arbitration_notification() {
+            bus_arbitration.notify();
+            //log(name(), "BUS ARBITRATION NOTIFICATION");
+        }
+
+        void wait_for_bus_arbitration() {
+            bus->memory_notify_bus_arbitration();
+
+            while (!bus_arbitration.triggered()) {
+                wait(clk.negedge_event());
+                //log(name(), "waiting for Bus arbitration...");
+            }
+            bus_arbitration.cancel();
+        }
+
     private:
         int read_count;
         int write_count;
@@ -92,6 +107,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::SNOOP_READ_RESPONSE:
                             log(name(), "PROCESSING READ after FAILED SNOOP from Cache", requester_id, "for address", addr);
                             
+                            wait_for_bus_arbitration();
                             bus->mem_read_failed_snoop_complete(requester_id, addr, data);
 
                             read_count++;
@@ -99,6 +115,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::WRITE:
                             log(name(), "PROCESSING WRITE from Cache", requester_id, "for address", addr);
 
+                            wait_for_bus_arbitration();
                             bus->mem_write_to_main_memory_complete(requester_id, addr);
                             
                             write_count++;
@@ -106,6 +123,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::READ_WRITE_ALLOCATE:
                             log(name(), "PROCESSING READ for WRITE ALLOCATE from Cache", requester_id, "for address", addr);
                             
+                            wait_for_bus_arbitration();
                             bus->mem_read_write_allocate_complete(requester_id, addr, data);
                             
                             read_count++;
