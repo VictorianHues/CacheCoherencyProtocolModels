@@ -40,6 +40,7 @@ class CPU : public cpu_if, public sc_module {
                 wait(clk.posedge_event());
                 //log(name(), "waiting for response...");
             }
+            log(name(), "RESPONSE RECEIVED");
             response_event.cancel();
         }
 
@@ -68,8 +69,8 @@ class CPU : public cpu_if, public sc_module {
                         wait_for_cache();
                         break;
                     case TraceFile::ENTRY_TYPE_NOP:
-                        log(name(), "NOP");
-                        wait_for_cache();
+                        //log(name(), "NOP");
+                        //wait_for_cache();
                         break;
                     default:
                         cerr << "ERROR, got invalid data from Trace" << endl;
@@ -80,9 +81,7 @@ class CPU : public cpu_if, public sc_module {
 
             log(name(), "END OF TRACE");
             
-            while (cache->system_busy()) {
-                wait(1);
-            }
+
             sc_stop();
         }
 };

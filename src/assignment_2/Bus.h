@@ -19,6 +19,7 @@ class Bus : public bus_if, public sc_module {
             static const uint64_t INVALIDATE = 2;
             static const uint64_t SNOOP_READ_RESPONSE = 3;
             static const uint64_t READ_WRITE_ALLOCATE = 4;
+            static const uint64_t WRITE_EVICTED = 5;
         };
         struct ResponseType {
             static const uint64_t SNOOP_READ_RESPONSE_MEM = 1;
@@ -67,6 +68,13 @@ class Bus : public bus_if, public sc_module {
             log(name(), "WRITE to Main Memory pushed to queue from Cache", requester_id, "for address", addr);
 
             std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_TO_MAIN_MEM};
+            requestQueue.push_back(req);
+        }
+
+        void write_evicted_to_main_memory(uint64_t requester_id, uint64_t addr, uint64_t data) {
+            log(name(), "WRITE EVICTED to Main Memory pushed to queue from Cache", requester_id, "for address", addr);
+
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_EVICTED};
             requestQueue.push_back(req);
         }
 
@@ -155,7 +163,7 @@ class Bus : public bus_if, public sc_module {
                                     if (cache->snoop_read(cache->id, req_addr)) {
                                         snoop_hit = true;
 
-                                        std::vector<uint64_t> res = {cache->id, req_addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
+                                        std::vector<uint64_t> res = {req_cache_id, req_addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
                                         responseQueue.push_front(res);
 
                                         stats_readhit(req_cache_id);
@@ -172,6 +180,9 @@ class Bus : public bus_if, public sc_module {
                             break;
                         case RequestType::WRITE_TO_MAIN_MEM: // Write to Main Memory
                             memory->write(req_cache_id, req_addr, data); 
+                            break;
+                        case RequestType::WRITE_EVICTED:
+                            memory->write_evicted(req_cache_id, req_addr, data);
                             break;
                         case RequestType::INVALIDATE: // Broadcast invalidation to all Caches
                             for (Cache* cache : cache_list) {

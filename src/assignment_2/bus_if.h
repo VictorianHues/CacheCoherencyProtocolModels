@@ -9,6 +9,7 @@ class bus_if : public virtual sc_interface {
 
         virtual void read(uint64_t requester_id, uint64_t addr) = 0;
         virtual void write_to_main_memory(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
+        virtual void write_evicted_to_main_memory(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
         virtual void read_for_write_allocate(uint64_t requester_id, uint64_t addr) = 0;
         virtual void broadcast_invalidate(uint64_t requester_id, uint64_t addr) = 0;
 

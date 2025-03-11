@@ -255,7 +255,7 @@ void Cache::processResponseQueue() {
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
                         wait_for_bus_arbitration();
-                        bus->write_to_main_memory(id, addr, data);
+                        bus->write_evicted_to_main_memory(id, addr, data);
                     } 
                     // Dirty bit is true after snooping caches
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
@@ -277,7 +277,7 @@ void Cache::processResponseQueue() {
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
                         
                         wait_for_bus_arbitration();
-                        bus->write_to_main_memory(id, addr, data);
+                        bus->write_evicted_to_main_memory(id, addr, data);
                     }
                     // Dirty bit is false after reading from memory
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
@@ -299,7 +299,7 @@ void Cache::processResponseQueue() {
                         //uint64_t evicted_data = cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)];
 
                         wait_for_bus_arbitration();
-                        bus->write_to_main_memory(id, addr, data);
+                        bus->write_evicted_to_main_memory(id, addr, data);
                     } 
 
                     set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);

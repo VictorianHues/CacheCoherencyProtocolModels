@@ -19,6 +19,7 @@ class Memory : public memory_if, public sc_module {
             static const uint64_t SNOOP_READ_RESPONSE = 0;
             static const uint64_t WRITE = 1;
             static const uint64_t READ_WRITE_ALLOCATE = 2;
+            static const uint64_t WRITE_EVICTED = 3;
         };
 
         sc_in_clk clk;
@@ -59,6 +60,14 @@ class Memory : public memory_if, public sc_module {
 
             // No Literal Data is processed here, but it is passed in the request
             std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE};
+            requestQueue.push_back(req);
+        }
+
+        void write_evicted(uint64_t requester_id, uint64_t addr, uint64_t data) {
+            log(name(), "WRITE EVICTED to MAIN MEMORY requested");
+
+            // No Literal Data is processed here, but it is passed in the request
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_EVICTED};
             requestQueue.push_back(req);
         }
 
@@ -109,6 +118,11 @@ class Memory : public memory_if, public sc_module {
                             bus->mem_read_write_allocate_complete(requester_id, addr, data);
                             
                             read_count++;
+                            break;
+                        case RequestType::WRITE_EVICTED:
+                            log(name(), "PROCESSING EVICTION WRITE from Cache", requester_id, "for address", addr);
+                            
+                            write_count++;
                             break;
                     }
                 }

@@ -12,6 +12,7 @@ class memory_if : public virtual sc_interface {
     virtual void read_failed_snoop(uint64_t requester_id, uint64_t addr)= 0;
     virtual void read_write_allocate(uint64_t requester_id, uint64_t addr) = 0;
     virtual void write(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
+    virtual void write_evicted(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
 };
 
 #endif
