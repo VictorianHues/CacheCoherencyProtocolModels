@@ -9,9 +9,7 @@
 #include "helpers.h"
 #include "constants.h"
 #include "psa.h"
-#include "Cache.h"
-
-
+#include "CACHE.h"
 
 class Memory : public memory_if, public sc_module {
     public:
@@ -19,8 +17,6 @@ class Memory : public memory_if, public sc_module {
             static const uint64_t SNOOP_READ_RESPONSE = 0;
             static const uint64_t WRITE = 1;
             static const uint64_t READ_WRITE_ALLOCATE = 2;
-            static const uint64_t WRITE_EVICTED = 3;
-            static const uint64_t WRITE_THROUGH = 4;
         };
 
         sc_in_clk clk;
@@ -66,21 +62,13 @@ class Memory : public memory_if, public sc_module {
             requestQueue.push_back(req);
         }
 
-        void write_evicted(uint64_t requester_id, uint64_t addr, uint64_t data) {
-            log(name(), "WRITE EVICTED to MAIN MEMORY requested");
-
-            // No Literal Data is processed here, but it is passed in the request
-            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_EVICTED};
-            requestQueue.push_back(req);
-        }
-        void write_through(uint64_t requester_id, uint64_t addr, uint64_t data) {
-            log(name(), "WRITE THROUGH to MAIN MEMORY requested");
-
-            // No Literal Data is processed here, but it is passed in the request
-            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_THROUGH};
-            requestQueue.push_back(req);
+        int get_read_count() const {
+            return read_count;
         }
 
+        int get_write_count() const {
+            return write_count;
+        }
 
         void bus_arbitration_notification() {
             bus_arbitration.notify();
@@ -95,15 +83,6 @@ class Memory : public memory_if, public sc_module {
                 //log(name(), "waiting for Bus arbitration...");
             }
             bus_arbitration.cancel();
-        }
-
-
-        int get_read_count() const {
-            return read_count;
-        }
-
-        int get_write_count() const {
-            return write_count;
         }
 
     private:
@@ -148,22 +127,6 @@ class Memory : public memory_if, public sc_module {
                             bus->mem_read_write_allocate_complete(requester_id, addr, data);
                             
                             read_count++;
-                            break;
-                        case RequestType::WRITE_EVICTED:
-                            log(name(), "PROCESSING EVICTION WRITE from Cache", requester_id, "for address", addr);
-                            
-                            wait_for_bus_arbitration();
-                            bus->mem_write_through_complete(requester_id, addr);
-                            
-                            write_count++;
-                            break;
-                        case RequestType::WRITE_THROUGH:
-                            log(name(), "PROCESSING WRITE THROUGH from Cache", requester_id, "for address", addr);
-                            
-                            wait_for_bus_arbitration();
-                            bus->mem_write_through_complete(requester_id, addr);
-
-                            write_count++;
                             break;
                     }
                 }

@@ -19,12 +19,15 @@ class Bus : public bus_if, public sc_module {
             static const uint64_t INVALIDATE = 2;
             static const uint64_t SNOOP_READ_RESPONSE = 3;
             static const uint64_t READ_WRITE_ALLOCATE = 4;
+            static const uint64_t WRITE_EVICTED = 5;
+            static const uint64_t WRITE_THROUGH = 6;
         };
         struct ResponseType {
             static const uint64_t SNOOP_READ_RESPONSE_MEM = 1;
             static const uint64_t SNOOP_READ_RESPONSE_CACHE = 2;
             static const uint64_t READ_WRITE_ALLOCATE_RESPONSE = 3;
             static const uint64_t WRITE_TO_MAIN_MEM_RESPONSE = 4;
+            static const uint64_t WRITE_THROUGH_RESPONSE = 5;
         };
 
         sc_in<bool> clk;
@@ -37,7 +40,7 @@ class Bus : public bus_if, public sc_module {
     
         SC_CTOR(Bus) {
             SC_THREAD(bus_arbitration_thread);
-            sensitive << clk.pos();
+            sensitive << clk.neg();
 
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
@@ -70,6 +73,20 @@ class Bus : public bus_if, public sc_module {
             requestQueue.push_back(req);
         }
 
+        void write_evicted_to_main_memory(uint64_t requester_id, uint64_t addr, uint64_t data) {
+            log(name(), "WRITE EVICTED to Main Memory pushed to queue from Cache", requester_id, "for address", addr);
+
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_EVICTED};
+            requestQueue.push_back(req);
+        }
+
+        void write_through_to_main_memory(uint64_t requester_id, uint64_t addr, uint64_t data) {
+            log(name(), "WRITE THROUGH to Main Memory pushed to queue from Cache", requester_id, "for address", addr);
+
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_THROUGH};
+            requestQueue.push_back(req);
+        }
+
         void read_for_write_allocate(uint64_t requester_id, uint64_t addr) {
             log(name(), "READ from Main Memory for WRITE ALLOCATE from Cache", requester_id, "for address", addr);
 
@@ -93,7 +110,7 @@ class Bus : public bus_if, public sc_module {
 
             // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
             std::vector<uint64_t> res = {requester_id, addr, ResponseType::READ_WRITE_ALLOCATE_RESPONSE};
-            responseQueue.push_back(res);
+            responseQueue.push_front(res);
         }
 
         void mem_read_failed_snoop_complete(uint64_t requester_id, uint64_t addr, uint64_t data) {
@@ -101,14 +118,14 @@ class Bus : public bus_if, public sc_module {
 
             // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
             std::vector<uint64_t> res = {requester_id, addr, ResponseType::SNOOP_READ_RESPONSE_MEM};
-            responseQueue.push_back(res);
+            responseQueue.push_front(res);
         }
 
         void mem_write_to_main_memory_complete(uint64_t requester_id, uint64_t addr) {
             log(name(), "WRITE to Main Memory RESPONSE pushed to queue for Cache", requester_id, "address", addr);
 
             std::vector<uint64_t> res = {requester_id, addr, ResponseType::WRITE_TO_MAIN_MEM_RESPONSE};
-            responseQueue.push_back(res);
+            responseQueue.push_front(res);
         }
 
         void cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64_t data) {
@@ -116,16 +133,57 @@ class Bus : public bus_if, public sc_module {
 
             // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
             std::vector<uint64_t> res = {requester_id, addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
-            responseQueue.push_back(res);
+            responseQueue.push_front(res);
         }
+
+        void mem_write_through_complete(uint64_t requester_id, uint64_t addr) {
+            log(name(), "WRITE THROUGH RESPONSE pushed to queue for Cache", requester_id, "address", addr);
+
+            std::vector<uint64_t> res = {requester_id, addr, ResponseType::WRITE_THROUGH_RESPONSE};
+            responseQueue.push_front(res);
+        }
+
+        /**
+         * Memory notifies the Bus that it is waiting for Bus Arbitration.
+         */
+        void memory_notify_bus_arbitration() {
+            log(name(), "MEMORY NOTIFIED BUS ARBITRATION");
+
+            memory_waiting = true;
+        }
+
+        /**
+         * Cache notifies the Bus that it is waiting for Bus Arbitration.
+         */
+        void cache_notify_bus_arbitration(uint64_t cache_id) {
+            log(name(), "CACHE NOTIFIED BUS ARBITRATION on", cache_id);
+
+            cache_arbitration.push_back(cache_id);
+        }
+
 
     private:
         int last_served_cache_id = 0;
+        bool memory_waiting = false;
+        std::deque<uint64_t> cache_arbitration;
 
         void bus_arbitration_thread() {
             while (true) {
-                last_served_cache_id = (last_served_cache_id + 1) % cache_list.size();
-                cache_list[last_served_cache_id]->bus_arbitration_notification();
+                if (memory_waiting == true) {
+                    log(name(), "MEMORY WAITING FOR BUS ARBITRATION");
+                    memory->bus_arbitration_notification();
+                    memory_waiting = false;
+                }
+                else {
+                    if (!cache_arbitration.empty()) {
+                        uint64_t arbitrated_cache_id = cache_arbitration.front();
+                        cache_arbitration.pop_front();
+        
+                        log(name(), "ARBITRATED CACHE", arbitrated_cache_id);
+        
+                        cache_list[arbitrated_cache_id]->bus_arbitration_notification();
+                    }
+                }
                 wait();
             }
         }
@@ -155,7 +213,7 @@ class Bus : public bus_if, public sc_module {
                                     if (cache->snoop_read(cache->id, req_addr)) {
                                         snoop_hit = true;
 
-                                        std::vector<uint64_t> res = {cache->id, req_addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
+                                        std::vector<uint64_t> res = {req_cache_id, req_addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
                                         responseQueue.push_front(res);
 
                                         stats_readhit(req_cache_id);
@@ -172,6 +230,12 @@ class Bus : public bus_if, public sc_module {
                             break;
                         case RequestType::WRITE_TO_MAIN_MEM: // Write to Main Memory
                             memory->write(req_cache_id, req_addr, data); 
+                            break;
+                        case RequestType::WRITE_EVICTED:
+                            memory->write_evicted(req_cache_id, req_addr, data);
+                            break;
+                        case RequestType::WRITE_THROUGH:
+                            memory->write_through(req_cache_id, req_addr, data);
                             break;
                         case RequestType::INVALIDATE: // Broadcast invalidation to all Caches
                             for (Cache* cache : cache_list) {
@@ -223,6 +287,9 @@ class Bus : public bus_if, public sc_module {
                                     break;
                                 case ResponseType::WRITE_TO_MAIN_MEM_RESPONSE:
                                     cache->write_to_main_memory_complete(res_addr);
+                                    break;
+                                case ResponseType::WRITE_THROUGH_RESPONSE:
+                                    cache->write_through_response(res_addr);
                                     break;
                             }
                         }

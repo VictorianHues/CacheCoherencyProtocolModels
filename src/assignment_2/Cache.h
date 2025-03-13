@@ -16,7 +16,7 @@
 class Cache : public cache_if, public sc_module {
     public:
         enum RequestType { READ, WRITE };
-        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE, WRITE_TO_MAIN_MEM, INVALIDATE_RESPONSE };
+        enum ResponseType { BUS_READ_RESPONSE_CACHE, BUS_READ_RESPONSE_MEM, READ_FOR_WRITE_ALLOCATE, WRITE_TO_MAIN_MEM, INVALIDATE_RESPONSE, WRITE_THROUGH };
 
         sc_in<bool> clk;
         sc_port<bus_if> bus;
@@ -53,6 +53,7 @@ class Cache : public cache_if, public sc_module {
 
         void read_for_write_allocate_response(uint64_t addr, uint64_t data);
         void write_to_main_memory_complete(uint64_t addr);
+        void write_through_response(uint64_t addr);
 
         bool snoop_read(uint64_t requester_id, uint64_t addr);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
