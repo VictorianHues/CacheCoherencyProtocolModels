@@ -207,13 +207,13 @@ void Cache::processRequestQueue() {
                     } else {
                         log(name(), "WRITE HIT on tag", tag, "in set", set_index);
 
-                        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
                         wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
 
                         wait_for_bus_arbitration();
                         bus->write_through_to_main_memory(id, addr, data);
+
+                        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
                         stats_writehit(id);
                     } 
@@ -253,13 +253,10 @@ void Cache::processResponseQueue() {
 
                     cache_hit_index = find_lru(cache[set_index]);
 
-
-                    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
                     wait_for_bus_arbitration();
                     bus->write_through_to_main_memory(id, addr, data);
 
-                    //cpu->read_response(addr, data); // READ MISS TO CACHE SNOOP HIT PROCESS ENDS HERE
+                    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
                     break;
                 case ResponseType::BUS_READ_RESPONSE_MEM: // Bus read response from Main Memory after Cache read miss
@@ -267,13 +264,10 @@ void Cache::processResponseQueue() {
 
                     cache_hit_index = find_lru(cache[set_index]);
 
-
-                    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
-
                     wait_for_bus_arbitration();
                     bus->write_through_to_main_memory(id, addr, data);
 
-                    //cpu->read_response(addr, data); // READ MISS TO MEMORY PROCESS ENDS HERE
+                    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, false);
 
                     break;
                 case ResponseType::READ_FOR_WRITE_ALLOCATE:

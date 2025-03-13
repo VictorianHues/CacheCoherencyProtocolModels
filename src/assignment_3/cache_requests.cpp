@@ -5,6 +5,11 @@
 #include "CACHE.h"
 #include "psa.h"
 
+/**
+ * READ REQUEST from CPU
+ * 
+ * @param addr The address of the Cache Line to READ.
+ */
 void Cache::cpu_read(uint64_t addr) {
     log(name(), "CPU READ for address", addr);
 
@@ -14,6 +19,11 @@ void Cache::cpu_read(uint64_t addr) {
     requestQueue.push_back(req);
 }
 
+/**
+ * WRITE REQUEST from CPU
+ * 
+ * @param addr The address of the Cache Line to WRITE.
+ */
 void Cache::cpu_write(uint64_t addr) {
     log(name(), "CPU WRITE for address", addr);
 
@@ -23,6 +33,9 @@ void Cache::cpu_write(uint64_t addr) {
     requestQueue.push_back(req);
 }
 
+/**
+ * Process the Request Queue for the Cache as a SystemC Thread.
+ */
 void Cache::processRequestQueue() {
     while(true) {
         if (!requestQueue.empty()) {
@@ -41,51 +54,41 @@ void Cache::processRequestQueue() {
 
             bool cache_hit = false;
             size_t cache_hit_index = -1;
-            bool cache_line_valid = false;
-            //bool cache_line_dirty = false;
+            CacheState cache_line_state = CacheState::INVALID;
 
             decode_address(addr, set_index, tag, byte_in_line, data);
 
-            cache_hit_check(cache_hit, cache_hit_index, set_index, tag);
-
-            if (cache_hit) {
-                cache_line_valid = cache[set_index].lines[cache_hit_index].valid;
-                //cache_line_dirty = cache[set_index].lines[cache_hit_index].dirty;
-            }
+            cache_hit_check(cache_hit, cache_hit_index, cache_line_state, set_index, tag);
 
             switch (req_type) {
                 case RequestType::READ:
-                    if (!cache_hit || !cache_line_valid) {
+                    if (!cache_hit || cache_line_state == CacheState::INVALID) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
                         
                         wait_for_bus_arbitration();
                         bus->read(id, addr);
                     } else {
                         log(name(), "READ HIT on tag", tag, "in set", set_index);
-                        log(name(), "Sending Data to CPU");
+
 
                         cpu->read_response(addr, data); // READ HIT PROCESS ENDS HERE
-
                         stats_readhit(id);
                     } 
                     break;
                 case RequestType::WRITE:
-                    if (!cache_hit) {
-                        log(name(), "WRITE MISS requires WRITE ALLOCATE READ on tag", tag, "in set", set_index);
+                    if (!cache_hit || cache_line_state == CacheState::INVALID) {
+                        log(name(), "WRITE MISS on tag", tag, "in set", set_index);
                         
                         wait_for_bus_arbitration();
                         bus->read_for_write_allocate(id, addr);
 
                         stats_writemiss(id);
-
-                    } else {
+                    } else { 
                         log(name(), "WRITE HIT on tag", tag, "in set", set_index);
-
-                        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, true, true);
 
                         wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
-
+                        
                         stats_writehit(id);
                     } 
                     break;

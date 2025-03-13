@@ -62,7 +62,7 @@ class Cache : public cache_if, public sc_module {
         void read_for_write_allocate_response(uint64_t addr, uint64_t data);
         void write_to_main_memory_complete(uint64_t addr);
 
-        bool snoop_read(uint64_t requester_id, uint64_t addr);
+        bool snoop_read(uint64_t requester_id, uint64_t addr, bool data_already_snooped);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
 
         void bus_arbitration_notification() {
@@ -88,11 +88,29 @@ class Cache : public cache_if, public sc_module {
         CacheSet cache[NUM_SETS];
 
         /* Helper Functions */
-        void cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag);
-        void update_lru(CacheSet &set, size_t index);
+        void cache_hit_check(bool &cache_hit, 
+            size_t &cache_hit_index, 
+            CacheState &cache_line_state,
+            int set_index, 
+            uint64_t tag);
+
+        void update_lru(CacheSet &set, 
+            size_t index);
+
         size_t find_lru(CacheSet &set);
-        void decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_t &byte_in_line, uint64_t &data);
-        void set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, uint64_t data, uint64_t byte_in_line, bool valid, bool dirty);
+
+        void decode_address(uint64_t addr, 
+            int &set_index, 
+            uint64_t &tag, 
+            uint64_t &byte_in_line, 
+            uint64_t &data);
+
+        void set_cache_line(int set_index, 
+            size_t cache_hit_index, 
+            uint64_t tag, 
+            uint64_t data, 
+            uint64_t byte_in_line, 
+            CacheState state);
 
         /* Processing Threads */
         void processRequestQueue();

@@ -3,15 +3,18 @@
 
 #include "constants.h"
 
+enum class CacheState : uint64_t {
+    INVALID = 0,
+    SHARED = 1,
+    EXCLUSIVE = 2,
+    MODIFIED = 3,
+    OWNED = 4
+};
+
 struct CacheLine {
     uint64_t tag = -1;
 
-    bool valid = false;
-    bool dirty = false;
-    bool exclusive = false;
-    bool shared = false;
-    bool owned = false;
-    bool modified = false;
+    CacheState state = CacheState::INVALID;
 
     uint64_t data[LINE_SIZE / sizeof(uint64_t)] = {0};
 };

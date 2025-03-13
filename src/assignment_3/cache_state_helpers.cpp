@@ -5,10 +5,10 @@
 #include "CACHE.h"
 #include "psa.h"
 
-
-void Cache::cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag) {
+void Cache::cache_hit_check(bool &cache_hit, size_t &cache_hit_index, CacheState &cache_line_state, int set_index, uint64_t tag) {
     for (size_t i = 0 ; i < SET_ASSOCIATIVITY ; i++) {
-        if (cache[set_index].lines[i].tag == tag) {
+        if (cache[set_index].lines[i].tag == tag && cache[set_index].lines[i].state != CacheState::INVALID) {
+            cache_line_state = cache[set_index].lines[i].state;
             cache_hit = true;
             cache_hit_index = i;
         }
@@ -45,13 +45,12 @@ void Cache::decode_address(uint64_t addr, int &set_index, uint64_t &tag, uint64_
 }
 
 void Cache::set_cache_line(int set_index, size_t cache_hit_index, uint64_t tag, 
-                            uint64_t data, uint64_t byte_in_line, bool valid, bool dirty) {
+                            uint64_t data, uint64_t byte_in_line, CacheState state) {
     log(name(), "SETTING CACHE LINE", cache_hit_index, "in set", set_index);
-    log(name(), "tag", tag, "data", data, "byte", byte_in_line, "valid", valid, "dirty", dirty);
+    log(name(), "tag", tag, "data", data, "byte", byte_in_line);
 
     cache[set_index].lines[cache_hit_index].tag = tag; // Set tag
-    cache[set_index].lines[cache_hit_index].valid = valid; // Set valid bit
-    cache[set_index].lines[cache_hit_index].dirty = dirty; // Set dirty bit
+    cache[set_index].lines[cache_hit_index].state = state; // Set state
     cache[set_index].lines[cache_hit_index].data[byte_in_line / sizeof(uint64_t)] = data; // Set data
 
     update_lru(cache[set_index], cache_hit_index);
