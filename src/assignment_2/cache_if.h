@@ -18,6 +18,7 @@ class cache_if : public virtual sc_interface {
 
         virtual void read_for_write_allocate_response(uint64_t addr, uint64_t data) = 0;
         virtual void write_to_main_memory_complete(uint64_t addr) = 0;
+        virtual void write_through_response(uint64_t addr) = 0;
 
         virtual void bus_arbitration_notification() = 0;
 

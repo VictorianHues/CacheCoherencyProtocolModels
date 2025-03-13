@@ -20,10 +20,13 @@ class Memory : public memory_if, public sc_module {
             static const uint64_t WRITE = 1;
             static const uint64_t READ_WRITE_ALLOCATE = 2;
             static const uint64_t WRITE_EVICTED = 3;
+            static const uint64_t WRITE_THROUGH = 4;
         };
 
         sc_in_clk clk;
         sc_port<bus_if> bus;
+
+        sc_event bus_arbitration;
 
         std::deque<std::vector<uint64_t>> requestQueue;
         std::deque<std::vector<uint64_t>> responseQueue;
@@ -70,6 +73,30 @@ class Memory : public memory_if, public sc_module {
             std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_EVICTED};
             requestQueue.push_back(req);
         }
+        void write_through(uint64_t requester_id, uint64_t addr, uint64_t data) {
+            log(name(), "WRITE THROUGH to MAIN MEMORY requested");
+
+            // No Literal Data is processed here, but it is passed in the request
+            std::vector<uint64_t> req = {requester_id, addr, RequestType::WRITE_THROUGH};
+            requestQueue.push_back(req);
+        }
+
+
+        void bus_arbitration_notification() {
+            bus_arbitration.notify();
+            //log(name(), "BUS ARBITRATION NOTIFICATION");
+        }
+
+        void wait_for_bus_arbitration() {
+            bus->memory_notify_bus_arbitration();
+
+            while (!bus_arbitration.triggered()) {
+                wait(clk.negedge_event());
+                //log(name(), "waiting for Bus arbitration...");
+            }
+            bus_arbitration.cancel();
+        }
+
 
         int get_read_count() const {
             return read_count;
@@ -101,6 +128,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::SNOOP_READ_RESPONSE:
                             log(name(), "PROCESSING READ after FAILED SNOOP from Cache", requester_id, "for address", addr);
                             
+                            wait_for_bus_arbitration();
                             bus->mem_read_failed_snoop_complete(requester_id, addr, data);
 
                             read_count++;
@@ -108,6 +136,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::WRITE:
                             log(name(), "PROCESSING WRITE from Cache", requester_id, "for address", addr);
 
+                            wait_for_bus_arbitration();
                             bus->mem_write_to_main_memory_complete(requester_id, addr);
                             
                             write_count++;
@@ -115,6 +144,7 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::READ_WRITE_ALLOCATE:
                             log(name(), "PROCESSING READ for WRITE ALLOCATE from Cache", requester_id, "for address", addr);
                             
+                            wait_for_bus_arbitration();
                             bus->mem_read_write_allocate_complete(requester_id, addr, data);
                             
                             read_count++;
@@ -122,6 +152,17 @@ class Memory : public memory_if, public sc_module {
                         case RequestType::WRITE_EVICTED:
                             log(name(), "PROCESSING EVICTION WRITE from Cache", requester_id, "for address", addr);
                             
+                            wait_for_bus_arbitration();
+                            bus->mem_write_through_complete(requester_id, addr);
+                            
+                            write_count++;
+                            break;
+                        case RequestType::WRITE_THROUGH:
+                            log(name(), "PROCESSING WRITE THROUGH from Cache", requester_id, "for address", addr);
+                            
+                            wait_for_bus_arbitration();
+                            bus->mem_write_through_complete(requester_id, addr);
+
                             write_count++;
                             break;
                     }

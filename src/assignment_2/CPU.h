@@ -81,7 +81,9 @@ class CPU : public cpu_if, public sc_module {
 
             log(name(), "END OF TRACE");
             
-
+            while (cache->system_busy()) {
+                wait(1);
+            }
             sc_stop();
         }
 };

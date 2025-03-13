@@ -13,6 +13,9 @@ class memory_if : public virtual sc_interface {
     virtual void read_write_allocate(uint64_t requester_id, uint64_t addr) = 0;
     virtual void write(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
     virtual void write_evicted(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
+    virtual void write_through(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
+
+    virtual void bus_arbitration_notification() = 0;
 };
 
 #endif
