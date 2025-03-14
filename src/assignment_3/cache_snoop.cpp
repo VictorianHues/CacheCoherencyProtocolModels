@@ -70,6 +70,60 @@ bool Cache::snoop_read(uint64_t requester_id, uint64_t addr, bool data_already_s
     return false;
 }
 
+bool Cache::snoop_read_allocate(uint64_t requester_id, uint64_t addr, bool data_already_snooped) {
+    uint64_t tag;
+    int set_index;
+    uint64_t byte_in_line;
+    uint64_t data;
+
+    bool cache_hit = false;
+    size_t cache_hit_index = -1;
+    CacheState cache_line_state = CacheState::INVALID;
+
+    decode_address(addr, set_index, tag, byte_in_line, data);
+
+    cache_hit_check(cache_hit, cache_hit_index, cache_line_state, set_index, tag);
+
+    if (cache_hit) {
+        switch (cache_line_state) {
+            case CacheState::INVALID:
+                log(name(), "SNOOP READ MISS on INVALID STATE on tag", tag, "in set", set_index);
+                return false;
+            case CacheState::SHARED:
+                log(name(), "SNOOP READ HIT on SHARED STATE on tag", tag, "in set", set_index);
+
+                cache[set_index].lines[cache_hit_index].state = CacheState::SHARED; // No state change
+
+                if (!data_already_snooped) { bus->cache_snoop_read_allocate_response(requester_id, addr, data); }
+                return true;
+            case CacheState::EXCLUSIVE:
+                log(name(), "SNOOP READ HIT on EXCLUSIVE STATE on tag", tag, "in set", set_index);
+
+                cache[set_index].lines[cache_hit_index].state = CacheState::SHARED; // Change state to SHARED
+
+                if (!data_already_snooped) { bus->cache_snoop_read_allocate_response(requester_id, addr, data); }
+                return true;
+            case CacheState::MODIFIED:
+                log(name(), "SNOOP READ HIT on MODIFIED STATE on tag", tag, "in set", set_index);
+
+                cache[set_index].lines[cache_hit_index].state = CacheState::OWNED; // Change state to SHARED
+
+                if (!data_already_snooped) { bus->cache_snoop_read_allocate_response(requester_id, addr, data); }
+                return true;
+            case CacheState::OWNED:
+                log(name(), "SNOOP READ HIT on OWNED STATE on tag", tag, "in set", set_index);
+
+                cache[set_index].lines[cache_hit_index].state = CacheState::OWNED; // No state change
+
+                if (!data_already_snooped) { bus->cache_snoop_read_allocate_response(requester_id, addr, data); }
+                return true;
+        }
+        return false;
+    }
+    log(name(), "SNOOP READ MISS on tag", tag, "in set", set_index);
+    return false;
+}
+
 /**
  * "Snoops" the Bus for WRITE requests caused by WRITE HITS,
  * requiring that other Caches with matching Cache Lines be INVALIDATED.

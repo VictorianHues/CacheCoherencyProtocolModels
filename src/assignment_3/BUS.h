@@ -75,6 +75,7 @@ class Bus : public bus_if, public sc_module {
         void mem_write_to_main_memory_complete(uint64_t requester_id, uint64_t addr);
 
         void cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64_t data);
+        void cache_snoop_read_allocate_response(uint64_t requester_id, uint64_t addr, uint64_t data);
 
         /* BUS ARBITRATION */
         void memory_notify_bus_arbitration();

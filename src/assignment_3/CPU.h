@@ -33,8 +33,9 @@ class CPU : public cpu_if, public sc_module {
          * @param data The data that was READ from the Cache Line.
          */
         void read_response(uint64_t addr, uint64_t data) {
-            response_event.notify();
             log(name(), "READ RESPONSE on address", addr);
+            //wait(clk.posedge_event());
+            response_event.notify();
         }
 
         /**
@@ -43,8 +44,9 @@ class CPU : public cpu_if, public sc_module {
          * @param addr The address of the Cache Line that was WRITTEN.
          */
         void write_response(uint64_t addr) {
-            response_event.notify();
             log(name(), "WRITE RESPONSE on address", addr);
+            //wait(clk.posedge_event());
+            response_event.notify();
         }
 
         /**
@@ -55,6 +57,7 @@ class CPU : public cpu_if, public sc_module {
                 wait(clk.posedge_event());
                 //log(name(), "waiting for response...");
             }
+            //log(name(), "response received");
             response_event.cancel();
         }
 

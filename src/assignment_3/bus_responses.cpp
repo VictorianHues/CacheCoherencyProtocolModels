@@ -71,6 +71,14 @@ void Bus::cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64
     responseQueue.push_back(res);
 }
 
+void Bus::cache_snoop_read_allocate_response(uint64_t requester_id, uint64_t addr, uint64_t data) {
+    log(name(), "SNOOP READ ALLOCATE RESPONSE pushed to queue for Cache", requester_id, "address", addr);
+
+    // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
+    std::vector<uint64_t> res = {requester_id, addr, ResponseType::READ_WRITE_ALLOCATE_RESPONSE};
+    responseQueue.push_back(res);
+}
+
 /**
  * Process the Request Queue for the Bus as a SystemC Thread.
  */

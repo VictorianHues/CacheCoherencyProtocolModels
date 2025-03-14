@@ -34,6 +34,7 @@ class Cache : public cache_if, public sc_module {
         sc_event bus_arbitration;
 
         uint64_t id;
+        uint64_t time_waiting_for_bus_arbitration = 0;
 
         std::deque<std::vector<uint64_t>> requestQueue;
         std::deque<std::vector<uint64_t>> responseQueue;
@@ -63,6 +64,7 @@ class Cache : public cache_if, public sc_module {
         void write_to_main_memory_complete(uint64_t addr);
 
         bool snoop_read(uint64_t requester_id, uint64_t addr, bool data_already_snooped);
+        bool snoop_read_allocate(uint64_t requester_id, uint64_t addr, bool data_already_snooped);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
 
         void bus_arbitration_notification() {
@@ -76,6 +78,7 @@ class Cache : public cache_if, public sc_module {
             while (!bus_arbitration.triggered()) {
                 wait(clk.negedge_event());
                 //log(name(), "waiting for Bus arbitration...");
+                time_waiting_for_bus_arbitration++;
             }
             bus_arbitration.cancel();
         }
@@ -84,6 +87,11 @@ class Cache : public cache_if, public sc_module {
         bool system_busy(){
             return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
         }
+
+        uint64_t get_time_waiting_for_bus_arbitration() {
+            return time_waiting_for_bus_arbitration;
+        }
+        
     private:
         CacheSet cache[NUM_SETS];
 

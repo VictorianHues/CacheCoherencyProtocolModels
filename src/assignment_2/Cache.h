@@ -25,6 +25,7 @@ class Cache : public cache_if, public sc_module {
         sc_event bus_arbitration;
 
         uint64_t id;
+        uint64_t time_waiting_for_bus_arbitration = 0;
 
         std::deque<std::pair<uint64_t, RequestType>> requestQueue;
         std::deque<std::pair<uint64_t, ResponseType>> responseQueue;
@@ -63,6 +64,7 @@ class Cache : public cache_if, public sc_module {
         /* Interface End */
 
         bool system_busy();
+        uint64_t get_time_waiting_for_bus_arbitration();
     private:
         CacheSet cache[NUM_SETS];
 

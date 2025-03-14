@@ -9,6 +9,10 @@ bool Cache::system_busy() {
     return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
 }
 
+uint64_t Cache::get_time_waiting_for_bus_arbitration() {
+    return time_waiting_for_bus_arbitration;
+}
+
 void Cache::cache_hit_check(bool &cache_hit, size_t &cache_hit_index, int set_index, uint64_t tag) {
     for (size_t i = 0 ; i < SET_ASSOCIATIVITY ; i++) {
         if (cache[set_index].lines[i].tag == tag) {
@@ -145,6 +149,7 @@ void Cache::wait_for_bus_arbitration() {
     while (!bus_arbitration.triggered()) {
         wait(clk.negedge_event());
         //log(name(), "waiting for Bus arbitration...");
+        time_waiting_for_bus_arbitration++;
     }
     bus_arbitration.cancel();
 }

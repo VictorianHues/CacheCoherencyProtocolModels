@@ -16,6 +16,7 @@ class bus_if : public virtual sc_interface {
         virtual void mem_read_failed_snoop_complete(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
         virtual void mem_write_to_main_memory_complete(uint64_t requester_id, uint64_t addr) = 0;
         virtual void cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
+        virtual void cache_snoop_read_allocate_response(uint64_t requester_id, uint64_t addr, uint64_t data) = 0;
 
         virtual void memory_notify_bus_arbitration() = 0;
         virtual void cache_notify_bus_arbitration(uint64_t cache_id) = 0;
