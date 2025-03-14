@@ -38,6 +38,7 @@ int sc_main(int argc, char *argv[]) {
         // The clock that will drive the CPU
         sc_clock clk;
 
+        /* Initialize and connect Caches and CPUs */
         for (uint32_t i = 0; i < num_cpus; ++i) {
             log("top", "Creating CPU and Cache", i);
             
@@ -55,9 +56,11 @@ int sc_main(int argc, char *argv[]) {
             bus->add_cache(caches[i]);      
         }
 
+        // Connect Memory and Bus
         bus->memory(*memory);
         memory->bus(*bus);
 
+        // Connect Clock to all components
         bus->clk(clk);
         memory->clk(clk);
 
@@ -68,6 +71,7 @@ int sc_main(int argc, char *argv[]) {
         // Print statistics after simulation finished
         stats_print();
 
+        // Print Cache Bus Arbitration Waiting Time
         sc_time total_time = sc_time_stamp();
         cout << setw(10) << "Cache ID" << setw(20) << "Bus Wait Time" << setw(30) << "Percentage of Total Time" << endl;
         cout << "-------------------------------------------------------------" << endl;
@@ -77,6 +81,7 @@ int sc_main(int argc, char *argv[]) {
             cout << setw(10) << i << setw(20) << bus_waiting_time << setw(30) << percentage << "%" << endl;
         }
 
+        // Print Memory Read and Write Count
         int read_count = memory->get_read_count();
         int write_count = memory->get_write_count();
 

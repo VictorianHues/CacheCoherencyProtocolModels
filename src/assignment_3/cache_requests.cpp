@@ -62,6 +62,9 @@ void Cache::processRequestQueue() {
 
             switch (req_type) {
                 case RequestType::READ:
+                    /**
+                     * READ request from CPU
+                     */
                     if (!cache_hit || cache_line_state == CacheState::INVALID) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
                         
@@ -75,6 +78,9 @@ void Cache::processRequestQueue() {
                     } 
                     break;
                 case RequestType::WRITE:
+                /**
+                 * WRITE request from CPU
+                 */
                     if (!cache_hit || cache_line_state == CacheState::INVALID) {
                         log(name(), "WRITE MISS on tag", tag, "in set", set_index);
                         

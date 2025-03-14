@@ -15,6 +15,9 @@
 
 class Cache : public cache_if, public sc_module {
     public:
+        /**
+         * Request and Response Types
+         */
         struct RequestType {
             static const uint64_t READ = 0;
             static const uint64_t WRITE = 1;
@@ -31,18 +34,21 @@ class Cache : public cache_if, public sc_module {
         sc_port<bus_if> bus;
         sc_port<cpu_if> cpu;
 
-        sc_event bus_arbitration;
+        sc_event bus_arbitration; // Event to notify Cache of Bus arbitration
 
-        uint64_t id;
-        uint64_t time_waiting_for_bus_arbitration = 0;
+        uint64_t id; // Cache ID
+        uint64_t time_waiting_for_bus_arbitration = 0; // Time spent waiting for Bus arbitration
 
+        /* Request and Response Queues */
         std::deque<std::vector<uint64_t>> requestQueue;
         std::deque<std::vector<uint64_t>> responseQueue;
 
+        /* Constructor */
         SC_CTOR(Cache) {
             log(name(), "constructed with id", id);
         }
 
+        /* Constructor */
         Cache(sc_core::sc_module_name name, int cache_id) : sc_module(name), id(cache_id) {
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
@@ -67,11 +73,13 @@ class Cache : public cache_if, public sc_module {
         bool snoop_read_allocate(uint64_t requester_id, uint64_t addr, bool data_already_snooped);
         void snoop_invalidate(uint64_t requester_id, uint64_t addr);
 
+        /* Bus Arbitration notifier */
         void bus_arbitration_notification() {
             bus_arbitration.notify();
             //log(name(), "BUS ARBITRATION NOTIFICATION on CACHE", id);
         }
         
+        /* Bus Arbitration Wait */
         void wait_for_bus_arbitration() {
             bus->cache_notify_bus_arbitration(id);
             
@@ -82,12 +90,13 @@ class Cache : public cache_if, public sc_module {
             }
             bus_arbitration.cancel();
         }
-        /* Interface End */
 
+        /* System Busy Check */
         bool system_busy(){
             return !requestQueue.empty() || !requestQueue.empty() || bus->system_busy();
         }
 
+        /* Time spent waiting for Bus arbitration */
         uint64_t get_time_waiting_for_bus_arbitration() {
             return time_waiting_for_bus_arbitration;
         }

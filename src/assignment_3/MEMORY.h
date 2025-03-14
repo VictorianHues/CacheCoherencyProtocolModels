@@ -27,19 +27,30 @@ class Memory : public memory_if, public sc_module {
         std::deque<std::vector<uint64_t>> requestQueue;
         std::deque<std::vector<uint64_t>> responseQueue;
 
+        /* Constructor */
         SC_CTOR(Memory) : read_count(0), write_count(0) {
             SC_THREAD(processRequestQueue);
             sensitive << clk.pos();
         }
 
+        /* Destructor */
         ~Memory() {
             // nothing to do here right now.
         }
 
+        /* System busy check */
         bool system_busy() {
             return !requestQueue.empty();
         }
 
+        /**
+         * Read request from Cache for READ MISSES.
+         * Caches Snoop the Bus for READS with matching CACHE LINES.
+         * If no Cache has a matching Cache Line, then read from Main Memory.
+         * 
+         * @param requester_id The ID of the Cache that requested the READ.
+         * @param addr The address of the Cache Line to READ.
+         */
         void read_failed_snoop(uint64_t requester_id, uint64_t addr) {
             log(name(), "READ from MAIN MEMORY after failed SNOOP");
 
@@ -47,6 +58,13 @@ class Memory : public memory_if, public sc_module {
             requestQueue.push_back(req);
         }
 
+        /**
+         * Read request from Cache for WRITE MISSES with WRITE ALLOCATE.
+         * 
+         * @param requester_id The ID of the Cache that requested the READ.
+         * @param addr The address of the Cache Line to READ.
+         * 
+         */
         void read_write_allocate(uint64_t requester_id, uint64_t addr) {
             log(name(), "READ from MAIN MEMORY for WRITE ALLOCATE");
 
@@ -54,6 +72,13 @@ class Memory : public memory_if, public sc_module {
             requestQueue.push_back(req);
         }
 
+        /**
+         * Write request from Cache for WRITES to MAIN MEMORY.
+         * 
+         * @param requester_id The ID of the Cache that requested the WRITE.
+         * @param addr The address of the Cache Line to WRITE.
+         * @param data The data to WRITE to Main Memory.
+         */
         void write(uint64_t requester_id, uint64_t addr, uint64_t data) {
             log(name(), "WRITE to MAIN MEMORY requested");
 
@@ -62,19 +87,31 @@ class Memory : public memory_if, public sc_module {
             requestQueue.push_back(req);
         }
 
+        /**
+         * Get the number of READ requests processed by the Memory.
+         */
         int get_read_count() const {
             return read_count;
         }
 
+        /**
+         * Get the number of WRITE requests processed by the Memory.
+         */
         int get_write_count() const {
             return write_count;
         }
 
+        /**
+         * Notification from the Bus that it is available for communication.
+         */
         void bus_arbitration_notification() {
             bus_arbitration.notify();
             //log(name(), "BUS ARBITRATION NOTIFICATION");
         }
 
+        /**
+         * Wait for the Bus to complete arbitration.
+         */
         void wait_for_bus_arbitration() {
             bus->memory_notify_bus_arbitration();
 
@@ -89,8 +126,10 @@ class Memory : public memory_if, public sc_module {
         int read_count;
         int write_count;
 
+        /**
+         * Process the Request Queue for the Main Memory as a SystemC Thread.
+         */
         void processRequestQueue() {
-
             while (true) {
                 if (!requestQueue.empty()) {
                     std::vector<uint64_t> req = requestQueue.front();

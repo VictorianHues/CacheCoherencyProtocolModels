@@ -6,8 +6,10 @@
 #include "psa.h"
 
 /** 
- * "Snoops" the Bus for READ requests caused by READ MISSES or 
- * READS due to WRITE ALLOCATION. 
+ * "Snoops" the Bus for READ requests caused by READ MISSES
+ * 
+ * Knows if other caches have the data in the Cache Line, and only sends a response 
+ * to the Bus if the data is found in the Cache and it is the first Cache to find it.
  * 
  * @param requester_id The ID of the Cache that requested the READ.
  * @param addr The address of the Cache Line to READ.
@@ -64,12 +66,24 @@ bool Cache::snoop_read(uint64_t requester_id, uint64_t addr, bool data_already_s
                 if (!data_already_snooped) { bus->cache_snoop_read_response(requester_id, addr, data); }
                 return true;
         }
-        return false;
     }
     log(name(), "SNOOP READ MISS on tag", tag, "in set", set_index);
     return false;
 }
 
+/**
+ * "Snoops" the Bus for READ requests caused by READS due to WRITE ALLOCATION. 
+ * 
+ * Knows if other caches have the data in the Cache Line, and only sends a response
+ * to the Bus if the data is found in the Cache and it is the first Cache to find it.
+ * 
+ * @param requester_id The ID of the Cache that requested the READ.
+ * @param addr The address of the Cache Line to READ.
+ * @param data_already_snooped True if the data was already snooped, False otherwise. Prevents multiple
+ * snoops on the same data.
+ * 
+ * @return bool True if the Cache Line was found in the Cache, False otherwise.
+ */
 bool Cache::snoop_read_allocate(uint64_t requester_id, uint64_t addr, bool data_already_snooped) {
     uint64_t tag;
     int set_index;

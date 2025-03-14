@@ -3,6 +3,12 @@
 
 #include <systemc.h>
 
+/** 
+ * Bus Interface
+ * 
+ * The Bus Interface is used to define the communication between the Bus and Caches, and the Bus and Main Memory.ADJ_FREQUENCY
+ * 
+ */
 class bus_if : public virtual sc_interface {
     public:
         virtual bool system_busy() = 0;

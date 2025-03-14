@@ -2,7 +2,11 @@
 #define CACHE_IF_H
 
 #include <systemc.h>
-
+/**
+ * Cache Interface
+ * 
+ * The Cache Interface is used to define the communication between the Cache and the Bus, and the Cache and the CPU.
+ */
 class cache_if : public virtual sc_interface {
     public:
         virtual bool system_busy() = 0;

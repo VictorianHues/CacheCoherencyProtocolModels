@@ -9,6 +9,12 @@
 #include "helpers.h"
 #include "psa.h"
 
+/**
+ * CPU Module
+ * 
+ * The CPU is the processor that reads the tracefile and sends requests to the Cache.
+ * 
+ */
 class CPU : public cpu_if, public sc_module {
     public:
         sc_in_clk clk; // Clock

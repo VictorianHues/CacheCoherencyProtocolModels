@@ -96,7 +96,7 @@ void Bus::processRequestQueue() {
                     for (Cache* cache : cache_list) {
                         log(name(), "READ SNOOPING request for Cache ", req_cache_id, "on Cache", cache->id);
                         if (cache->id != req_cache_id) {
-                            if (cache->snoop_read(req_cache_id, req_addr, snoop_hit)) {
+                            if (cache->snoop_read(req_cache_id, req_addr, snoop_hit)) { 
                                 snoop_hit = true;
                             }
                         }
@@ -106,10 +106,6 @@ void Bus::processRequestQueue() {
                         memory->read_failed_snoop(req_cache_id, req_addr);
                         stats_readmiss(req_cache_id);
                     } else {
-                        //log(name(), "READ SNOOP HIT for Cache", req_cache_id, "address", req_addr);
-                        //std::vector<uint64_t> res = {req_cache_id, req_addr, ResponseType::SNOOP_READ_RESPONSE_CACHE};
-                        //responseQueue.push_front(res);
-
                         stats_readhit(req_cache_id);
                     }
                     break;
@@ -154,11 +150,7 @@ void Bus::processRequestQueue() {
                         log(name(), "READ WRITE ALLOCATE FAILED SNOOP for Cache", req_cache_id, "address", req_addr);
                         memory->read_write_allocate(req_cache_id, req_addr);
 
-                    } /*else {
-                        log(name(), "READ WRITE ALLOCATE SNOOP HIT for Cache", req_cache_id, "address", req_addr);
-                        std::vector<uint64_t> res = {req_cache_id, req_addr, ResponseType::READ_WRITE_ALLOCATE_RESPONSE};
-                        responseQueue.push_front(res);
-                    }*/
+                    }
                     break;
             }
         }

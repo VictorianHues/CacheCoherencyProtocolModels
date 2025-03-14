@@ -5,6 +5,12 @@
 
 class Cache;
 
+/**
+ * Memory Interface
+ * 
+ * The Memory Interface is used to define the communication between the Memory and the Bus.
+ * 
+ */
 class memory_if : public virtual sc_interface {
     public:
     virtual bool system_busy() = 0;
