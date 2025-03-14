@@ -1,0 +1,621 @@
+~All Reads on the same address~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     12500     12499         1         0         0         0     99.99      -nan     99.99
+         1     12500     12499         1         0         0         0     99.99      -nan     99.99
+         2     12500     12499         1         0         0         0     99.99      -nan     99.99
+         3     12500     12499         1         0         0         0     99.99      -nan     99.99
+         4     12500     12499         1         0         0         0     99.99      -nan     99.99
+         5     12500     12499         1         0         0         0     99.99      -nan     99.99
+         6     12500     12499         1         0         0         0     99.99      -nan     99.99
+         7     12500     12499         1         0         0         0     99.99      -nan     99.99
+Total simulation time: 25810 ns
+Memory read count: 8
+Memory write count: 0
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     12500     12499         1         0         0         0     99.99      -nan     99.99
+         1     12500     12499         1         0         0         0     99.99      -nan     99.99
+         2     12500     12499         1         0         0         0     99.99      -nan     99.99
+         3     12500     12499         1         0         0         0     99.99      -nan     99.99
+         4     12500     12499         1         0         0         0     99.99      -nan     99.99
+         5     12500     12499         1         0         0         0     99.99      -nan     99.99
+         6     12500     12499         1         0         0         0     99.99      -nan     99.99
+         7     12500     12499         1         0         0         0     99.99      -nan     99.99
+Total simulation time: 25813 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                   1                     3.874e-06%
+         1                   2                     7.748e-06%
+         2                   3                     1.162e-05%
+         3                   4                      1.55e-05%
+         4                   5                     1.937e-05%
+         5                   6                     2.324e-05%
+         6                   7                     2.712e-05%
+         7                   8                     3.099e-05%
+Memory read count: 8
+Memory write count: 0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~All Writes on the same address~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         1         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         2         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         3         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         4         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         5         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         6         0         0         0     12500      2641      9859      -nan     21.13     21.13
+         7         0         0         0     12500      2643      9857      -nan     21.14     21.14
+Total simulation time: 10100006 ns
+Memory read count: 78870
+Memory write count: 21130
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0         0         0         0     12500      9529      2971      -nan     76.23     76.23
+         1         0         0         0     12500      8434      4066      -nan     67.47     67.47
+         2         0         0         0     12500      8371      4129      -nan     66.97     66.97
+         3         0         0         0     12500      9530      2970      -nan     76.24     76.24
+         4         0         0         0     12500      9543      2957      -nan     76.34     76.34
+         5         0         0         0     12500     10443      2057      -nan     83.54     83.54
+         6         0         0         0     12500     10459      2041      -nan     83.67     83.67
+         7         0         0         0     12500     10443      2057      -nan     83.54     83.54
+Total simulation time: 409867 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                2971                     0.0007249%
+         1                4067                     0.0009923%
+         2                4131                      0.001008%
+         3                2973                     0.0007254%
+         4                2976                     0.0007261%
+         5                2062                     0.0005031%
+         6                2047                     0.0004994%
+         7                2064                     0.0005036%
+Memory read count: 3860
+Memory write count: 0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~All Reads on Random Addresses~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     12500     10887      1613         0         0         0      87.1      -nan      87.1
+         1     12500     10941      1559         0         0         0     87.53      -nan     87.53
+         2     12500     10931      1569         0         0         0     87.45      -nan     87.45
+         3     12500     10913      1587         0         0         0      87.3      -nan      87.3
+         4     12500     10864      1636         0         0         0     86.91      -nan     86.91
+         5     12500     10697      1803         0         0         0     85.58      -nan     85.58
+         6     12500     11118      1382         0         0         0     88.94      -nan     88.94
+         7     12500     11451      1049         0         0         0     91.61      -nan     91.61
+Total simulation time: 11699944 ns
+Memory read count: 12198
+Memory write count: 103643
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     12500     12223       277         0         0         0     97.78      -nan     97.78
+         1     12500     12229       271         0         0         0     97.83      -nan     97.83
+         2     12500     12218       282         0         0         0     97.74      -nan     97.74
+         3     12500     12237       263         0         0         0      97.9      -nan      97.9
+         4     12500     12222       278         0         0         0     97.78      -nan     97.78
+         5     12500     12216       284         0         0         0     97.73      -nan     97.73
+         6     12500     12229       271         0         0         0     97.83      -nan     97.83
+         7     12500     12228       272         0         0         0     97.82      -nan     97.82
+Total simulation time: 252571 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                8413                      0.003331%
+         1                9107                      0.003606%
+         2                9301                      0.003683%
+         3                9764                      0.003866%
+         4               10096                      0.003997%
+         5               10445                      0.004135%
+         6               10815                      0.004282%
+         7               11285                      0.004468%
+Memory read count: 2198
+Memory write count: 0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~All Writes on Random Addresses~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0         0         0         0     12500      3440      9060      -nan     27.52     27.52
+         1         0         0         0     12500      3441      9059      -nan     27.53     27.53
+         2         0         0         0     12500      3445      9055      -nan     27.56     27.56
+         3         0         0         0     12500      3433      9067      -nan     27.46     27.46
+         4         0         0         0     12500      3429      9071      -nan     27.43     27.43
+         5         0         0         0     12500      3357      9143      -nan     26.86     26.86
+         6         0         0         0     12500      3411      9089      -nan     27.29     27.29
+         7         0         0         0     12500      3507      8993      -nan     28.06     28.06
+Total simulation time: 10100006 ns
+Memory read count: 72537
+Memory write count: 27463
+
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0         0         0         0     12500      3544      8956      -nan     28.35     28.35
+         1         0         0         0     12500      3528      8972      -nan     28.22     28.22
+         2         0         0         0     12500      3502      8998      -nan     28.02     28.02
+         3         0         0         0     12500      3555      8945      -nan     28.44     28.44
+         4         0         0         0     12500      3506      8994      -nan     28.05     28.05
+         5         0         0         0     12500      3452      9048      -nan     27.62     27.62
+         6         0         0         0     12500      3505      8995      -nan     28.04     28.04
+         7         0         0         0     12500      3551      8949      -nan     28.41     28.41
+Total simulation time: 1578482 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0               10599                     0.0006715%
+         1               10646                     0.0006744%
+         2               10683                     0.0006768%
+         3               10638                     0.0006739%
+         4               10671                      0.000676%
+         5               10753                     0.0006812%
+         6               10704                     0.0006781%
+         7               10707                     0.0006783%
+Memory read count: 2656
+Memory write count: 12971
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~Alternating Read/Writes on same address~
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0      6250      6249         1      6250      6250         0     99.98       100     99.99
+         1      6250      6249         1      6250      6218        32     99.98     99.49     99.74
+         2      6250      6249         1      6250      6182        68     99.98     98.91     99.45
+         3      6250      6249         1      6250      6146       104     99.98     98.34     99.16
+         4      6250      6249         1      6250      6106       144     99.98      97.7     98.84
+         5      6250      6249         1      6250      6058       192     99.98     96.93     98.46
+         6      6250      6249         1      6250      6002       248     99.98     96.03     98.01
+         7      6250      6249         1      6250      5922       328     99.98     94.75     97.37
+Total simulation time: 5324446 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                6476                     0.0001216%
+         1                6533                     0.0001227%
+         2                6570                     0.0001234%
+         3                6623                     0.0001244%
+         4                6688                     0.0001256%
+         5                6753                     0.0001268%
+         6                6834                     0.0001284%
+         7                6915                     0.0001299%
+Memory read count: 1124
+Memory write count: 51124
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0      6250      5980       270      6250      5685       565     95.68     90.96     93.32
+         1      6250      5980       270      6250      4993      1257     95.68     79.89     87.78
+         2      6250      6036       214      6250      4658      1592     96.58     74.53     85.55
+         3      6250      6249         1      6250      3132      3118     99.98     50.11     75.05
+         4      6250      6040       210      6250      2940      3310     96.64     47.04     71.84
+         5      6250      5990       260      6250      4941      1309     95.84     79.06     87.45
+         6      6250      6003       247      6250      3965      2285     96.05     63.44     79.74
+         7      6250      6248         2      6250      3134      3116     99.97     50.14     75.06
+Total simulation time: 233523 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                1156                      0.000495%
+         1                2733                       0.00117%
+         2                3397                      0.001455%
+         3                6240                      0.002672%
+         4                6597                      0.002825%
+         5                2861                      0.001225%
+         6                4881                       0.00209%
+         7                6242                      0.002673%
+Memory read count: 2020
+Memory write count: 0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~Random Read/Writes on Random Addresses~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0      6271      5477       794      6229      2170      4059     87.34     34.84     61.18
+         1      6211      5421       790      6289      2117      4172     87.28     33.66      60.3
+         2      6264      5507       757      6236      2080      4156     87.92     33.35      60.7
+         3      6220      5533       687      6280      1992      4288     88.95     31.72      60.2
+         4      6239      5500       739      6261      1944      4317     88.16     31.05     59.55
+         5      6223      5396       827      6277      1959      4318     86.71     31.21     58.84
+         6      6308      5289      1019      6192      1866      4326     83.85     30.14     57.24
+         7      6277      5320       957      6223      1869      4354     84.75     30.03     57.51
+Total simulation time: 11965069 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0               20224                      0.000169%
+         1               19269                      0.000161%
+         2               18929                     0.0001582%
+         3               18785                      0.000157%
+         4               18235                     0.0001524%
+         5               17522                     0.0001464%
+         6               16554                     0.0001384%
+         7               16647                     0.0001391%
+Memory read count: 40560
+Memory write count: 77906
+
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0      6271      6122       149      6229      2149      4080     97.62      34.5     66.17
+         1      6211      6062       149      6289      2100      4189      97.6     33.39      65.3
+         2      6264      6105       159      6236      2075      4161     97.46     33.27     65.44
+         3      6220      6061       159      6280      2057      4223     97.44     32.75     64.94
+         4      6239      6083       156      6261      1976      4285      97.5     31.56     64.47
+         5      6223      6068       155      6277      2095      4182     97.51     33.38      65.3
+         6      6308      6160       148      6192      2015      4177     97.65     32.54      65.4
+         7      6277      6119       158      6223      2009      4214     97.48     32.28     65.02
+Total simulation time: 1610075 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                9949                     0.0006179%
+         1                9982                       0.00062%
+         2                9888                     0.0006141%
+         3               10160                      0.000631%
+         4               10228                     0.0006352%
+         5               10100                     0.0006273%
+         6               10099                     0.0006272%
+         7               10128                      0.000629%
+Memory read count: 2531
+Memory write count: 13410
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~Debug File - dbg_p1.trf~
+	Assignment 1
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0        40        19        21        60        26        34      47.5     43.33        45
+Total simulation time: 5727 ns
+	
+
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0        40        19        21        60        26        34      47.5     43.33        45
+Total simulation time: 10835 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                 102                     0.0009414%
+Memory read count: 55
+Memory write count: 47
+	
+	
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0        40        19        21        60        26        34      47.5     43.33        45
+Total simulation time: 6028 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                  55                     0.0009124%
+Memory read count: 55
+Memory write count: 0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~Fast Fourier Transform - fft_1024_p1.trf~
+	Assignment 1
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0    506419    503436      2983    153991    153009       982     99.41     99.36      99.4
+Total simulation time: 1913830 ns
+	
+	
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0    506419    503499      2920    153991    152809      1182     99.42     99.23     99.38
+Total simulation time: 18096054 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0              159831                     0.0008832%
+Memory read count: 4102
+Memory write count: 155729
+
+	
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0    506419    503499      2920    153991    152809      1182     99.42     99.23     99.38
+Total simulation time: 2118469 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                4686                     0.0002212%
+Memory read count: 4102
+Memory write count: 584
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~Matrix Multiplication 8 CPUs - matrix_mult_50_50_p8.trf~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0    228571    222945      5626     35721     31464      4257     97.54     88.08     96.26
+         1    228571    227136      1435     35721     34611      1110     99.37     96.89     99.04
+         2    195918    195773       145     30618     30545        73     99.93     99.76      99.9
+         3    195918    195841        77     30618     30616         2     99.96     99.99     99.97
+         4    195918    195839        79     30618     30610         8     99.96     99.97     99.96
+         5    195918    195839        79     30618     30616         2     99.96     99.99     99.96
+         6    195918    195839        79     30618     30610         8     99.96     99.97     99.96
+         7    195918    195841        77     30618     30616         2     99.96     99.99     99.97
+Total simulation time: 27803495 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0               49335                     0.0001774%
+         1               39827                     0.0001432%
+         2               31608                     0.0001137%
+         3               31399                     0.0001129%
+         4               31402                     0.0001129%
+         5               31401                     0.0001129%
+         6               31404                     0.0001129%
+         7               31403                     0.0001129%
+Memory read count: 13059
+Memory write count: 262223
+	
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0    228571    228214       357     35721     35719         2     99.84     99.99     99.86
+         1    228571    228229       342     35721     35719         2     99.85     99.99     99.87
+         2    195918    195596       322     30618     30616         2     99.84     99.99     99.86
+         3    195918    195594       324     30618     30616         2     99.83     99.99     99.86
+         4    195918    195581       337     30618     30616         2     99.83     99.99     99.85
+         5    195918    195588       330     30618     30616         2     99.83     99.99     99.85
+         6    195918    195586       332     30618     30616         2     99.83     99.99     99.85
+         7    195918    195601       317     30618     30616         2     99.84     99.99     99.86
+Total simulation time: 788379 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                 404                     5.124e-05%
+         1                 406                      5.15e-05%
+         2                 396                     5.023e-05%
+         3                 394                     4.998e-05%
+         4                 399                     5.061e-05%
+         5                 396                     5.023e-05%
+         6                 397                     5.036e-05%
+         7                 398                     5.048e-05%
+Memory read count: 2677
+Memory write count: 0
+
+	
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~matrix_vector_5000_8_p8-O2.trf~
+	
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     83750     81883      1867     12500     12273       227     97.77     98.18     97.82
+         1     83750     82448      1302     12500     12342       158     98.45     98.74     98.48
+         2     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         3     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         4     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         5     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         6     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         7     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+Total simulation time: 12265648 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0               16252                     0.0001325%
+         1               15111                     0.0001232%
+         2               15018                     0.0001224%
+         3               15019                     0.0001224%
+         4               15020                     0.0001225%
+         5               15021                     0.0001225%
+         6               15022                     0.0001225%
+         7               15023                     0.0001225%
+Memory read count: 12038
+Memory write count: 109404
+	
+	
+	
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         1     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         2     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         3     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         4     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         5     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         6     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+         7     83750     82494      1256     12500     12342       158      98.5     98.74     98.53
+Total simulation time: 1172902 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                1456                     0.0001241%
+         1                1447                     0.0001234%
+         2                1456                     0.0001241%
+         3                1450                     0.0001236%
+         4                1457                     0.0001242%
+         5                1461                     0.0001246%
+         6                1459                     0.0001244%
+         7                1466                      0.000125%
+Memory read count: 11312
+Memory write count: 296
+
+
+
+
+~Fast Fourier Transform - fft_1024_p8.trf~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     66238     64493      1745     20569     20112       457     97.37     97.78     97.46
+         1     66381     64781      1600     20969     20330       639     97.59     96.95     97.44
+         2     66328     64833      1495     20929     20300       629     97.75     96.99     97.57
+         3     66301     64965      1336     20914     20281       633     97.98     96.97     97.74
+         4     66280     64861      1419     20897     20254       643     97.86     96.92     97.63
+         5     66380     65201      1179     20963     20377       586     98.22      97.2     97.98
+         6     66381     65632       749     20966     20464       502     98.87     97.61     98.57
+         7     66368     65014      1354     20955     20331       624     97.96     97.02     97.73
+Total simulation time: 19387256 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0               24608                     0.0001269%
+         1               24697                     0.0001274%
+         2               24466                     0.0001262%
+         3               24250                     0.0001251%
+         4               24343                     0.0001256%
+         5               23891                     0.0001232%
+         6               22959                     0.0001184%
+         7               24287                     0.0001253%
+Memory read count: 15590
+Memory write count: 176363
+
+
+
+MOESI CACHE COHERENCY PROTOCOL
+       CPU     Reads      RHit     Rmiss    Writes      WHit     WMiss  RHitrate  WHitrate   Hitrate
+         0     66238     65948       290     20569     20501        68     99.56     99.67     99.59
+         1     66381     66116       265     20969     20796       173      99.6     99.17      99.5
+         2     66328     66071       257     20929     20757       172     99.61     99.18     99.51
+         3     66301     66050       251     20914     20740       174     99.62     99.17     99.51
+         4     66280     66021       259     20897     20717       180     99.61     99.14      99.5
+         5     66380     66119       261     20963     20790       173     99.61     99.17      99.5
+         6     66381     66132       249     20966     20791       175     99.62     99.17     99.51
+         7     66368     66115       253     20955     20783       172     99.62     99.18     99.51
+Total simulation time: 532133 ns
+  Cache ID       Bus Wait Time      Percentage of Total Time
+-------------------------------------------------------------
+         0                 552                     0.0001037%
+         1                 735                     0.0001381%
+         2                 723                     0.0001359%
+         3                 732                     0.0001376%
+         4                 758                     0.0001424%
+         5                 760                     0.0001428%
+         6                 738                     0.0001387%
+         7                 728                     0.0001368%
+Memory read count: 3341
+Memory write count: 235
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+~All Reads on the same address~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 25810 ns
+Memory read count: 8
+Memory write count: 0
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 25813 ns
+Memory read count: 8
+Memory write count: 0
+
+
+
+~All Writes on the same address~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 10100006 ns
+Memory read count: 78870
+Memory write count: 21130
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 409867 ns
+Memory read count: 3860
+Memory write count: 0
+
+
+
+~All Reads on Random Addresses~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 11699944 ns
+Memory read count: 12198
+Memory write count: 103643
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 252571 ns
+Memory read count: 2198
+Memory write count: 0
+
+
+
+~All Writes on Random Addresses~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 10100006 ns
+Memory read count: 72537
+Memory write count: 27463
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 1578482 ns
+Memory read count: 2656
+Memory write count: 12971
+
+
+
+~Alternating Read/Writes on same address~
+Total simulation time: 5324446 ns
+Memory read count: 1124
+Memory write count: 51124
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 233523 ns
+Memory read count: 2020
+Memory write count: 0
+
+
+
+~Random Read/Writes on Random Addresses~
+Total simulation time: 11965069 ns
+Memory read count: 40560
+Memory write count: 77906
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 1610075 ns
+Memory read count: 2531
+Memory write count: 13410
+
+
+
+~Matrix Multiplication 8 CPUs - matrix_mult_50_50_p8.trf~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 27803495 ns
+Memory read count: 13059
+Memory write count: 262223
+	
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 788379 ns
+Memory read count: 2677
+Memory write count: 0
+
+	
+
+~matrix_vector_5000_8_p8-O2.trf~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 12265648 ns
+Memory read count: 12038
+Memory write count: 109404
+	
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 1172902 ns
+Memory read count: 11312
+Memory write count: 296
+
+
+
+
+~Fast Fourier Transform - fft_1024_p8.trf~
+VALID/INVALID CACHE COHERENCY PROTOCOL
+Total simulation time: 19387256 ns
+Memory read count: 15590
+Memory write count: 176363
+
+MOESI CACHE COHERENCY PROTOCOL
+Total simulation time: 532133 ns
+Memory read count: 3341
+Memory write count: 235
+
+
+
