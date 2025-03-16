@@ -54,14 +54,14 @@ valid_invalid_alternating_data = np.array([
 
 # Data for Alternating Read/Writes on same address - MOESI CACHE COHERENCY PROTOCOL
 moesi_alternating_data = np.array([
-    [6250, 5980, 270, 6250, 5685, 565, 95.68, 90.96, 93.32],
-    [6250, 5980, 270, 6250, 4993, 1257, 95.68, 79.89, 87.78],
-    [6250, 6036, 214, 6250, 4658, 1592, 96.58, 74.53, 85.55],
-    [6250, 6249, 1, 6250, 3132, 3118, 99.98, 50.11, 75.05],
-    [6250, 6040, 210, 6250, 2940, 3310, 96.64, 47.04, 71.84],
-    [6250, 5990, 260, 6250, 4941, 1309, 95.84, 79.06, 87.45],
-    [6250, 6003, 247, 6250, 3965, 2285, 96.05, 63.44, 79.74],
-    [6250, 6248, 2, 6250, 3134, 3116, 99.97, 50.14, 75.06]
+    [6250, 5882, 368, 6250, 6250, 0, 94.11, 100, 97.06],
+    [6250, 5276, 974, 6250, 5279, 971, 84.42, 84.46, 84.44],
+    [6250, 5881, 369, 6250, 6249, 1, 94.1, 99.98, 97.04],
+    [6250, 5277, 973, 6250, 5564, 686, 84.43, 89.02, 86.73],
+    [6250, 5877, 373, 6250, 6244, 6, 94.03, 99.9, 96.97],
+    [6250, 5556, 694, 6250, 5882, 368, 88.9, 94.11, 91.5],
+    [6250, 5877, 373, 6250, 6245, 5, 94.03, 99.92, 96.98],
+    [6250, 5558, 692, 6250, 5883, 367, 88.93, 94.13, 91.53]
 ])
 
 # Calculate averages
@@ -548,27 +548,27 @@ plt.show()
 
 
 moesit_read_counts = np.array([
-    moesi_random_rw[0][0],
-    moesi_alternating_rw[0][0],
-    moesi_writes_random[0][0],
-    moesi_reads_random[0][0],
-    moesi_writes_same_address[0][0],
-    moesi_reads_same_address[0][0],
-    moesi_matrix_mult[0][0],
-    moesi_matrix_vector[0][0],
-    moesi_fft[0][0]
+    moesi_random_rw[0][1],
+    moesi_alternating_rw[0][1],
+    moesi_writes_random[0][1],
+    moesi_reads_random[0][1],
+    moesi_writes_same_address[0][1],
+    moesi_reads_same_address[0][1],
+    moesi_matrix_mult[0][1],
+    moesi_matrix_vector[0][1],
+    moesi_fft[0][1]
 ])
 
 valid_invalid_read_counts = np.array([
-    valid_invalid_random_rw[0][0],
-    valid_invalid_alternating_rw[0][0],
-    valid_invalid_writes_random[0][0],
-    valid_invalid_reads_random[0][0],
-    valid_invalid_writes_same_address[0][0],
-    valid_invalid_reads_same_address[0][0],
-    valid_invalid_matrix_mult[0][0],
-    valid_invalid_matrix_vector[0][0],
-    valid_invalid_fft[0][0]
+    valid_invalid_random_rw[0][1],
+    valid_invalid_alternating_rw[0][1],
+    valid_invalid_writes_random[0][1],
+    valid_invalid_reads_random[0][1],
+    valid_invalid_writes_same_address[0][1],
+    valid_invalid_reads_same_address[0][1],
+    valid_invalid_matrix_mult[0][1],
+    valid_invalid_matrix_vector[0][1],
+    valid_invalid_fft[0][1]
 ])
 
 plt.figure(figsize=(10, 6))
@@ -595,27 +595,27 @@ plt.tight_layout()
 plt.show()
 
 moesi_write_counts = np.array([
-    moesi_random_rw[0][1],
-    moesi_alternating_rw[0][1],
-    moesi_writes_random[0][1],
-    moesi_reads_random[0][1],
-    moesi_writes_same_address[0][1],
-    moesi_reads_same_address[0][1],
-    moesi_matrix_mult[0][1],
-    moesi_matrix_vector[0][1],
-    moesi_fft[0][1]
+    moesi_random_rw[0][2],
+    moesi_alternating_rw[0][2],
+    moesi_writes_random[0][2],
+    moesi_reads_random[0][2],
+    moesi_writes_same_address[0][2],
+    moesi_reads_same_address[0][2],
+    moesi_matrix_mult[0][2],
+    moesi_matrix_vector[0][2],
+    moesi_fft[0][2]
 ])
 
 valid_invalid_write_counts = np.array([
-    valid_invalid_random_rw[0][1],
-    valid_invalid_alternating_rw[0][1],
-    valid_invalid_writes_random[0][1],
-    valid_invalid_reads_random[0][1],
-    valid_invalid_writes_same_address[0][1],
-    valid_invalid_reads_same_address[0][1],
-    valid_invalid_matrix_mult[0][1],
-    valid_invalid_matrix_vector[0][1],
-    valid_invalid_fft[0][1]
+    valid_invalid_random_rw[0][2],
+    valid_invalid_alternating_rw[0][2],
+    valid_invalid_writes_random[0][2],
+    valid_invalid_reads_random[0][2],
+    valid_invalid_writes_same_address[0][2],
+    valid_invalid_reads_same_address[0][2],
+    valid_invalid_matrix_mult[0][2],
+    valid_invalid_matrix_vector[0][2],
+    valid_invalid_fft[0][2]
 ])
 
 plt.figure(figsize=(10, 6))
@@ -636,6 +636,157 @@ plt.xticks(ind + bar_width / 2, ('All Random',
                                  'Matrix Mult', 
                                  'Matrix Vector Mult',
                                  'Fast Fourier Transform'), rotation=25, fontsize=12)
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+# Reads+writes per unit time
+
+moesi_rw_per_unit_time = np.array([
+    moesi_random_rw[0][0] + moesi_random_rw[0][1],
+    moesi_alternating_rw[0][0] + moesi_alternating_rw[0][1],
+    moesi_writes_random[0][0] + moesi_writes_random[0][1],
+    moesi_reads_random[0][0] + moesi_reads_random[0][1],
+    moesi_writes_same_address[0][0] + moesi_writes_same_address[0][1],
+    moesi_reads_same_address[0][0] + moesi_reads_same_address[0][1],
+    moesi_matrix_mult[0][0] + moesi_matrix_mult[0][1],
+    moesi_matrix_vector[0][0] + moesi_matrix_vector[0][1],
+    moesi_fft[0][0] + moesi_fft[0][1]
+])
+
+valid_invalid_rw_per_unit_time = np.array([
+    valid_invalid_random_rw[0][0] + valid_invalid_random_rw[0][1],
+    valid_invalid_alternating_rw[0][0] + valid_invalid_alternating_rw[0][1],
+    valid_invalid_writes_random[0][0] + valid_invalid_writes_random[0][1],
+    valid_invalid_reads_random[0][0] + valid_invalid_reads_random[0][1],
+    valid_invalid_writes_same_address[0][0] + valid_invalid_writes_same_address[0][1],
+    valid_invalid_reads_same_address[0][0] + valid_invalid_reads_same_address[0][1],
+    valid_invalid_matrix_mult[0][0] + valid_invalid_matrix_mult[0][1],
+    valid_invalid_matrix_vector[0][0] + valid_invalid_matrix_vector[0][1],
+    valid_invalid_fft[0][0] + valid_invalid_fft[0][1]
+])
+
+plt.figure(figsize=(10, 6))
+
+ind = np.arange(9)
+bar_width = 0.35
+
+plt.bar(ind, valid_invalid_rw_per_unit_time, bar_width, label='VALID/INVALID', alpha=0.8)
+plt.bar(ind + bar_width, moesi_rw_per_unit_time, bar_width, label='MOESI', alpha=0.8)
+
+plt.ylabel('Reads+Writes per unit time', fontsize=16)
+plt.xticks(ind + bar_width / 2, ('All Random', 
+                                 'Alternating RW', 
+                                 'All Writes Random', 
+                                 'All Reads Random', 
+                                 'All Writes on \nSame Address', 
+                                 'All Reads on \nSame Address', 
+                                 'Matrix Mult', 
+                                 'Matrix Vector Mult',
+                                 'Fast Fourier Transform'), rotation=25, fontsize=12)
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+# Plot read hit rate
+
+moesi_read_hit_rate = np.array([
+    moesi_avg[6],
+    moesi_alternating_avg[6],
+    moesi_writes_avg[6],
+    moesi_reads_avg[6],
+    moesi_same_address_writes_avg[6],
+    moesi_same_address_reads_avg[6],
+    moesi_matrix_mult_avg[6],
+    moesi_matrix_vector_avg[6],
+    moesi_fft_avg[6]
+])
+
+valid_invalid_read_hit_rate = np.array([
+    valid_invalid_avg[6],
+    valid_invalid_alternating_avg[6],
+    valid_invalid_writes_avg[6],
+    valid_invalid_reads_avg[6],
+    valid_invalid_same_address_writes_avg[6],
+    valid_invalid_same_address_reads_avg[6],
+    valid_invalid_matrix_mult_avg[6],
+    valid_invalid_matrix_vector_avg[6],
+    valid_invalid_fft_avg[6]
+])
+
+plt.figure(figsize=(10, 6))
+
+ind = np.arange(9)
+
+plt.bar(ind, valid_invalid_read_hit_rate, bar_width, label='VALID/INVALID', alpha=0.8)
+plt.bar(ind + bar_width, moesi_read_hit_rate, bar_width, label='MOESI', alpha=0.8)
+
+plt.ylabel('Read Hit Rate', fontsize=16)
+plt.xticks(ind + bar_width / 2, ('All Random', 
+                                 'Alternating RW', 
+                                 'All Writes Random', 
+                                 'All Reads Random', 
+                                 'All Writes on \nSame Address', 
+                                 'All Reads on \nSame Address', 
+                                 'Matrix Mult', 
+                                 'Matrix Vector Mult',
+                                 'Fast Fourier Transform'), rotation=25, fontsize=12)
+
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+# Plot write hit rate
+
+moesi_write_hit_rate = np.array([
+    moesi_avg[7],
+    moesi_alternating_avg[7],
+    moesi_writes_avg[7],
+    moesi_reads_avg[7],
+    moesi_same_address_writes_avg[7],
+    moesi_same_address_reads_avg[7],
+    moesi_matrix_mult_avg[7],
+    moesi_matrix_vector_avg[7],
+    moesi_fft_avg[7]
+])
+
+valid_invalid_write_hit_rate = np.array([
+    valid_invalid_avg[7],
+    valid_invalid_alternating_avg[7],
+    valid_invalid_writes_avg[7],
+    valid_invalid_reads_avg[7],
+    valid_invalid_same_address_writes_avg[7],
+    valid_invalid_same_address_reads_avg[7],
+    valid_invalid_matrix_mult_avg[7],
+    valid_invalid_matrix_vector_avg[7],
+    valid_invalid_fft_avg[7]
+])
+
+plt.figure(figsize=(10, 6))
+
+ind = np.arange(9)
+
+plt.bar(ind, valid_invalid_write_hit_rate, bar_width, label='VALID/INVALID', alpha=0.8)
+plt.bar(ind + bar_width, moesi_write_hit_rate, bar_width, label='MOESI', alpha=0.8)
+
+plt.ylabel('Write Hit Rate', fontsize=16)
+plt.xticks(ind + bar_width / 2, ('All Random', 
+                                 'Alternating RW', 
+                                 'All Writes Random', 
+                                 'All Reads Random', 
+                                 'All Writes on \nSame Address', 
+                                 'All Reads on \nSame Address', 
+                                 'Matrix Mult', 
+                                 'Matrix Vector Mult',
+                                 'Fast Fourier Transform'), rotation=25, fontsize=12)
+
 plt.legend()
 
 plt.tight_layout()
