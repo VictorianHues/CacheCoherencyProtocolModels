@@ -9,23 +9,6 @@
 #include "psa.h"
 #include "BUS.h"
 
-/**
- * Checks if the Bus or the Memory are still processing requests.
- * 
- * @return bool True if the Bus or Memory are still processing requests, False otherwise.
- */
-bool Bus::system_busy() {
-    return !requestQueue.empty() || !responseQueue.empty() || memory->system_busy();
-}
-
-/**
- * Adds a Cache to the Bus list of Caches.
- * 
- * @param new_cache The Cache to add to the Bus.
- */
-void Bus::add_cache(Cache* new_cache) {
-    cache_list.push_back(new_cache);
-}
 
 /**
  * Thread to process the Caches currently waiting for Bus access.

@@ -18,7 +18,7 @@ void Cache::read_for_write_allocate_response(uint64_t addr, uint64_t data) {
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
     std::vector<uint64_t> res = {addr, ResponseType::READ_FOR_WRITE_ALLOCATE};
-    responseQueue.push_front(res);
+    responseQueue.push_back(res);
 }
 
 /**
@@ -33,7 +33,7 @@ void Cache::write_to_main_memory_complete(uint64_t addr) {
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
     std::vector<uint64_t> res = {addr, ResponseType::WRITE_TO_MAIN_MEM};
-    responseQueue.push_front(res);
+    responseQueue.push_back(res);
 }
 
 /**
@@ -49,7 +49,7 @@ void Cache::snoop_read_response_cache(uint64_t addr, uint64_t data) {
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
     std::vector<uint64_t> res = {addr, ResponseType::BUS_READ_RESPONSE_CACHE};
-    responseQueue.push_front(res);
+    responseQueue.push_back(res);
 }
 
 /**
@@ -66,7 +66,7 @@ void Cache::snoop_read_response_mem(uint64_t addr, uint64_t data) {
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
     std::vector<uint64_t> res = {addr, ResponseType::BUS_READ_RESPONSE_MEM};
-    responseQueue.push_front(res);
+    responseQueue.push_back(res);
 }
 
 /**
@@ -81,7 +81,7 @@ void Cache::snoop_invalidate_response(uint64_t addr) {
     wait(CACHE_CYCLE_LATENCY, SC_NS);
 
     std::vector<uint64_t> res = {addr, ResponseType::INVALIDATE_RESPONSE};
-    responseQueue.push_front(res);
+    responseQueue.push_back(res);
 }
 
 /**
@@ -122,6 +122,7 @@ void Cache::processResponseQueue() {
                     log(name(), "BUS READ RESPONSE from parallel Cache for address", addr);
 
                     cache_hit_index = find_lru(cache[set_index]);
+                    log(name(), "LRU INDEX", cache_hit_index);
 
                     cache_line_state = cache[set_index].lines[cache_hit_index].state;
 
@@ -149,6 +150,7 @@ void Cache::processResponseQueue() {
                     log(name(), "BUS READ RESPONSE queue from Main Memory for address", addr);
 
                     cache_hit_index = find_lru(cache[set_index]);
+                    log(name(), "LRU INDEX", cache_hit_index);
 
                     cache_line_state = cache[set_index].lines[cache_hit_index].state;
 
@@ -176,6 +178,7 @@ void Cache::processResponseQueue() {
                     log(name(), "READ FOR WRITE ALLOCATE RESPONSE queue on address", addr);
 
                     cache_hit_index = find_lru(cache[set_index]);
+                    log(name(), "LRU INDEX", cache_hit_index);
                     
                     cache_line_state = cache[set_index].lines[cache_hit_index].state;
 
@@ -206,8 +209,8 @@ void Cache::processResponseQueue() {
                      */
                     log(name(), "INVALIDATE RESPONSE queue on address", addr);
 
-                    set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, CacheState::MODIFIED);
-
+                    //set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, CacheState::MODIFIED);
+                    
                     cpu->write_response(addr); // WRITE RESPONSE PROCESS ENDS HERE
                     break;
             }

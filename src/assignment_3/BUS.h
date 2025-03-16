@@ -59,8 +59,23 @@ class Bus : public bus_if, public sc_module {
         }
 
         /* HELPERS */
-        bool system_busy(); 
-        void add_cache(Cache* new_cache);
+        /**
+         * Checks if the Bus or the Memory are still processing requests.
+         * 
+         * @return bool True if the Bus or Memory are still processing requests, False otherwise.
+         */
+        bool system_busy() {
+            return !requestQueue.empty() || !responseQueue.empty() || memory->system_busy();
+        }
+
+        /**
+         * Adds a Cache to the Bus list of Caches.
+         * 
+         * @param new_cache The Cache to add to the Bus.
+         */
+        void add_cache(Cache* new_cache) {
+            cache_list.push_back(new_cache);
+}
     
         /* REQUESTS TO BUS */
         void read(uint64_t requester_id, uint64_t addr);
@@ -75,6 +90,7 @@ class Bus : public bus_if, public sc_module {
         void mem_write_to_main_memory_complete(uint64_t requester_id, uint64_t addr);
 
         void cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64_t data);
+        void cache_snoop_read_allocate_response(uint64_t requester_id, uint64_t addr, uint64_t data);
 
         /* BUS ARBITRATION */
         void memory_notify_bus_arbitration();

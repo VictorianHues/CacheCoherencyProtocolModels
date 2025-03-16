@@ -6,6 +6,7 @@
 class cache_if : public virtual sc_interface {
     public:
         virtual bool system_busy() = 0;
+        virtual uint64_t get_time_waiting_for_bus_arbitration() = 0;
 
         /* Requests from CPU */
         virtual void cpu_read(uint64_t addr) = 0;

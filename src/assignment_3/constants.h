@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-/* Cache Memory Module */
+/* Constants */
 static const size_t CACHE_SIZE = 32 * 1024; // 32KB to Bytes
 static const size_t SET_ASSOCIATIVITY = 8; // 8 way set assoc
 static const size_t LINE_SIZE = 32; // 32 bytes per cache line

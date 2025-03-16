@@ -62,6 +62,9 @@ void Cache::processRequestQueue() {
 
             switch (req_type) {
                 case RequestType::READ:
+                    /**
+                     * READ request from CPU
+                     */
                     if (!cache_hit || cache_line_state == CacheState::INVALID) {
                         log(name(), "READ MISS on tag", tag, "in set", set_index);
                         
@@ -70,12 +73,14 @@ void Cache::processRequestQueue() {
                     } else {
                         log(name(), "READ HIT on tag", tag, "in set", set_index);
 
-
                         cpu->read_response(addr, data); // READ HIT PROCESS ENDS HERE
                         stats_readhit(id);
                     } 
                     break;
                 case RequestType::WRITE:
+                /**
+                 * WRITE request from CPU
+                 */
                     if (!cache_hit || cache_line_state == CacheState::INVALID) {
                         log(name(), "WRITE MISS on tag", tag, "in set", set_index);
                         
@@ -86,9 +91,11 @@ void Cache::processRequestQueue() {
                     } else { 
                         log(name(), "WRITE HIT on tag", tag, "in set", set_index);
 
-                        wait_for_bus_arbitration();
+                        set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, CacheState::MODIFIED);
+
+                        //wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
-                        
+
                         stats_writehit(id);
                     } 
                     break;

@@ -72,6 +72,22 @@ void Bus::cache_snoop_read_response(uint64_t requester_id, uint64_t addr, uint64
 }
 
 /**
+ * RESPONSE from a Cache after a SUCCESSFUL SNOOP READ ALLOCATE request.
+ * snoop_read_allocate -> cache_snoop_read_allocate_response
+ * 
+ * @param requester_id The ID of the Cache that requested the READ.
+ * @param addr The address of the Cache Line to READ.
+ * @param data The data read from the Cache.
+ */
+void Bus::cache_snoop_read_allocate_response(uint64_t requester_id, uint64_t addr, uint64_t data) {
+    log(name(), "SNOOP READ ALLOCATE RESPONSE pushed to queue for Cache", requester_id, "address", addr);
+
+    // Literal Data transfer stops here, but could be implemented to complete the transfer to the Cache properly
+    std::vector<uint64_t> res = {requester_id, addr, ResponseType::READ_WRITE_ALLOCATE_RESPONSE};
+    responseQueue.push_back(res);
+}
+
+/**
  * Process the Request Queue for the Bus as a SystemC Thread.
  */
 void Bus::processResponsesQueue() {
@@ -88,7 +104,7 @@ void Bus::processResponsesQueue() {
             log(name(), "PROCESSING RESPONSE QUEUE on Cache", res_cache_id, "for address", res_addr);
 
             for (Cache* cache : cache_list) {
-                if (cache->id == res_cache_id) {
+                if (cache->id == res_cache_id) { // Find the Cache that requested the response
                     switch (res_type) {
                         case ResponseType::SNOOP_READ_RESPONSE_MEM: // Bus read response from Main Memory after Cache read miss
                             cache->snoop_read_response_mem(res_addr, data);
@@ -97,9 +113,9 @@ void Bus::processResponsesQueue() {
                             cache->snoop_read_response_cache(res_addr, data);
                             break;
                         case ResponseType::READ_WRITE_ALLOCATE_RESPONSE:
-                            cache->read_for_write_allocate_response(res_addr, data);
+                            cache->read_for_write_allocate_response(res_addr, data); // Bus read response from Main Memory for WRITE ALLOCATE
                             break;
-                        case ResponseType::WRITE_TO_MAIN_MEM_RESPONSE:
+                        case ResponseType::WRITE_TO_MAIN_MEM_RESPONSE: // Bus write response to Main Memory
                             cache->write_to_main_memory_complete(res_addr);
                             break;
                     }
