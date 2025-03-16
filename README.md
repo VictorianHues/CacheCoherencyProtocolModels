@@ -1,109 +1,108 @@
-# Cache Memory Simulation - SystemC Implementation
+# Multi-Core Processor Systems - Cache Coherency Assignments
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Architectural Features](#architectural-features)
-3. [System Components](#system-components)
-4. [Execution Flow](#execution-flow)
-5. [Compilation & Execution Instructions](#compilation--execution-instructions)
-6. [Future Enhancements](#future-enhancements-assignment-2)
-7. [Contributors](#contributors)
-8. [References](#references)
+- [Overview](#overview)
+- [Assignments](#assignments)
+  - [Assignment 1: Implementing a Single Cache](#assignment-1-implementing-a-single-cache)
+  - [Assignment 2: Implementing a Multiprocessor Coherent Cache System](#assignment-2-implementing-a-multiprocessor-coherent-cache-system)
+  - [Assignment 3: Implementing the MOESI Protocol](#assignment-3-implementing-the-moesi-protocol)
+- [Installation & Setup](#installation--setup)
+  - [Prerequisites](#prerequisites)
+  - [Compilation](#compilation)
+  - [Running the Simulation](#running-the-simulation)
+  - [Trace Files](#trace-files)
+- [Output & Logging](#output--logging)
+- [Submission & Reports](#submission--reports)
+- [References](#references)
 
 ## Overview
 
-This project presents an advanced **32KB, 8-way set-associative L1 data cache** implemented in **SystemC**, designed to efficiently manage memory access latency within a computational architecture. The cache adheres to a **write-back** and **write-allocate** policy, interfacing with a main memory subsystem to resolve cache misses and enforce memory consistency. A CPU module issues memory access requests that initiate cache transactions, simulating realistic workload behaviors in a multiprocessor system.
+This repository contains implementations of various cache coherence protocols using SystemC for the "Multi-Core Processor Systems" course. The assignments focus on building a Level-1 Data-cache simulator, implementing cache coherence protocols, and evaluating their performance using trace files.
 
-## Architectural Features
+## Assignments
 
-- **32KB L1 data cache** with **8-way set associativity**
-- **32-byte cache line granularity**
-- **Least Recently Used (LRU) replacement algorithm**
-- **Write-back policy** (modified data is written to memory only upon eviction)
-- **Write-allocate strategy** (on a write miss, the full cache line is fetched into the cache before modification)
-- **Single-cycle latency for cache hits**
-- **100-cycle latency for main memory accesses**
-- **Extensive diagnostic logging for cache operations and state transitions**
+### Assignment 1: Implementing a Single Cache
 
-## System Components
+- Develop a **32KB 8-way set-associative L1 Data Cache** with a **32-byte line size**.
+- Implement **Least-Recently-Used (LRU) write-back replacement** and **allocate-on-write policy**.
+- Simulate cache operations using **single processor trace files**.
+- Print cache actions and state transitions to the console.
+- Collect **hit/miss statistics** and print them after the simulation.
 
-### 1. **CPU Module**
+### Assignment 2: Implementing a Multiprocessor Coherent Cache System
 
-- Generates **read and write memory access requests**.
-- Issues **addresses and function codes** to interface with the cache.
+- Extend Assignment 1 to support **multiple processors (1-8 processors)** with **shared memory architecture**.
+- Implement a **bus snooping protocol** to ensure cache coherence.
+- Use a **VALID-INVALID protocol** for cache coherence.
+- Simulate different scenarios using provided trace files.
+- Collect performance metrics:
+  - Cache hit/miss rates
+  - Main memory access rates
+  - Bus contention (average time for bus acquisition)
+  - Total execution time
 
-### 2. **Cache Memory Module**
+### Assignment 3: Implementing the MOESI Protocol
 
-- Implements an **8-way set-associative caching mechanism**.
-- Detects **cache hits, misses, and manages evictions**.
-- Utilizes **LRU-based replacement policy** to optimize data retention.
-- Enforces **write-back and write-allocate behaviors**.
-- Engages with the **main memory module** for data retrieval and eviction handling.
+- Extend Assignment 2 to support the **MOESI cache coherence protocol**.
+- Implement **cache-to-cache transfers** for shared data consistency.
+- Modify the bus system to accommodate the additional states.
+- Perform the same experiments as in Assignment 2, analyzing performance differences.
 
-### 3. **Main Memory Module**
+## Installation & Setup
 
-- Models a **100-cycle latency for memory access**.
-- Provides data retrieval for cache misses.
-- Handles write-back requests from the cache.
+### Prerequisites
 
-## Execution Flow
+- **SystemC**: Ensure SystemC is installed on your system in the location `\home\Username` such that the file structure looks like `home\Username\local\systemc`
+- **C++ Compiler**: Use a modern C++ compiler supporting C++11 or later.
+- **Make**: Compilation is managed via a Makefile.
 
-1. **CPU Issues a Memory Request**
-   - Transmits a **read or write request** to the cache.
+### Compilation
 
-2. **Cache Lookup and Resolution**
-   - **Cache hit & valid**: Data is returned with **1-cycle latency**.
-   - **Cache miss or invalid line**: Data is fetched from **main memory** incurring **100-cycle latency**.
-
-3. **Read Processing**
-   - **Cache hit**: Data is retrieved directly from cache.
-   - **Cache miss**:
-     - Main memory fetch is initiated.
-     - Retrieved data is stored in cache.
-     - Data is returned to CPU.
-
-4. **Write Processing**
-   - **Cache hit**:
-     - Data is updated in the cache line.
-     - Cache line is marked as **dirty**.
-   - **Cache miss**:
-     - The **full cache line** is fetched before modification (**write-allocate** policy).
-     - Data is updated and the cache line is flagged **dirty**.
-
-5. **Eviction Handling**
-   - Identifies the **Least Recently Used (LRU) cache line** for replacement.
-   - If the evicted line is **dirty**, it is **written back to memory**.
-   - A new cache line is allocated and updated.
-
-## Compilation & Execution Instructions
-
-### **1. Compile the SystemC Project**
-
+To compile the project, modify the `SYSTEMC_PATH` to target your systemc folder and run:
 ```sh
-In Progress
+make
 ```
 
-### **2. Run the Simulation**
+### Running the Simulation
 
+To execute the cache simulator with a trace file:
 ```sh
-In Progress
+./assignment_1.bin <trace_file>
+./assignment_2.bin <trace_file>
+./assignment_3.bin <trace_file>
 ```
 
-## Future Enhancements (Assignment 2)
+### Trace Files
 
-- Extend the cache design to support **multiprocessor cache coherence mechanisms**.
-- Implement a **bus snooping protocol** for coherence enforcement.
-- Optimize **cache-to-cache data transfers** to minimize main memory access overhead.
+The provided trace files simulate various workloads:
 
-## Contributors
+- **debug** - Small traces for debugging
+- **matrix multiplication** - 50x50 integer matrix multiplication
+- **matrix-vector multiplication** - Multiplications with varying matrix sizes
+- **1D FFT** - Fast Fourier Transform on 1024 integers
 
-- **[Victoria Peterson]**
+## Output & Logging
 
-- Developed based on the framework by **Michiel W. van Tol, Mike Lankamp, Jony Zhang, Konstantinos Bousias, Simon Polstra**
+- Cache actions and state transitions are printed to the console.
+- Hit/miss statistics are logged and displayed after the simulation.
+
+## Submission & Reports
+
+Each assignment submission includes:
+
+1. **Source code** (must compile without warnings on a standard Linux system).
+2. **Short report** (PDF format) discussing:
+   - Problem statement
+   - Implementation details
+   - Performance analysis and findings
+   - Comparison of different protocols
 
 ## References
 
-- **SystemC Standard Documentation**: https://www.accellera.org/
+- [AMD64 Architecture Programmer’s Manual](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24593.pdf)
+- [CPU Cache Associativity](http://en.wikipedia.org/wiki/CPU_cache#Associativity)
 
-- **Course Lectures and Laboratory Assignments**
+---
+For any questions, refer to the lab sessions or discussions on Canvas.
+

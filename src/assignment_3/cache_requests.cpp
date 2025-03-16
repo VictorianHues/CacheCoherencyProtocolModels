@@ -93,7 +93,7 @@ void Cache::processRequestQueue() {
 
                         set_cache_line(set_index, cache_hit_index, tag, data, byte_in_line, CacheState::MODIFIED);
 
-                        //wait_for_bus_arbitration();
+                        wait_for_bus_arbitration();
                         bus->broadcast_invalidate(id, addr);
 
                         stats_writehit(id);
